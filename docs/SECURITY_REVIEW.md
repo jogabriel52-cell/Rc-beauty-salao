@@ -98,7 +98,20 @@ arquivo bloqueada; linhas de prévia apagadas no descarte e expurgáveis.
 | P18 | Definir prazo de retenção das linhas de prévia e agendar o expurgo | Recomendado (LGPD) | Função pronta; agendamento pendente |
 | P19 | Dados reais só podem ser importados no ambiente aprovado para dados reais (não no Cloud de desenvolvimento) | Bloqueante | Regra registrada |
 
-Pendências das fases 3–4 são acrescentadas nas seções de cada fase.
+### Fase 3
+
+Controles: permissões separadas para ver, lançar e conciliar; comissões com
+visão própria; ninguém configura/apura/aprova/paga a própria comissão;
+aprovação por outra pessoa; regras de lançamento e conciliação no banco;
+extratos entram só por CSV (nenhuma credencial bancária armazenada).
+
+| # | Item | Tipo | Situação |
+|---|---|---|---|
+| P20 | Confirmar os parâmetros de comissão listados em `COMMISSIONS.md` | Bloqueante para pagar comissões | Pendente — decisão da direção |
+| P21 | Definir se vendas das comandas entram no fluxo de caixa automaticamente ou por lançamento manual | Decisão | Pendente |
+| P22 | Integração bancária/adquirente por API | Futuro | Sem credenciais; CSV em uso |
+
+Pendências da fase 4 são acrescentadas na seção correspondente.
 
 ## Sobre o SQL original do Builder
 

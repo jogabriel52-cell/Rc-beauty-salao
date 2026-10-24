@@ -72,3 +72,41 @@ export function chunk<T>(items: T[], size: number): T[][] {
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
   return out;
 }
+
+// Valor de extrato em centavos: "1.234,56", "-1.234,56", "1234.56", "(123,45)", "R$ -10,00".
+export function parseBankAmount(input: string | undefined): number | null {
+  if (!input) return null;
+  let s = input.trim();
+  if (!s) return null;
+  let negative = false;
+  if (/^\(.*\)$/.test(s)) { negative = true; s = s.slice(1, -1); }
+  s = s.replace(/[R$\s]/g, "");
+  if (s.startsWith("-")) { negative = !negative; s = s.slice(1); }
+  if (s.endsWith("-")) { negative = !negative; s = s.slice(0, -1); }
+  if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, "").replace(",", ".");
+  else s = s.replace(/,/g, "");
+  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  const cents = Math.round(Number(s) * 100);
+  return negative ? -cents : cents;
+}
+
+// Data de extrato para AAAA-MM-DD conforme o formato informado.
+export function parseBankDate(input: string | undefined, format: "DD/MM/YYYY" | "YYYY-MM-DD" | "MM/DD/YYYY"): string | null {
+  if (!input) return null;
+  const v = input.trim().slice(0, 10);
+  let y: string, m: string, d: string;
+  if (format === "YYYY-MM-DD") {
+    const r = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!r) return null;
+    [, y, m, d] = r as unknown as [string, string, string, string];
+  } else {
+    const r = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!r) return null;
+    if (format === "DD/MM/YYYY") { d = r[1]!; m = r[2]!; } else { m = r[1]!; d = r[2]!; }
+    y = r[3]!;
+  }
+  const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  const dt = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(dt.getTime()) || dt.toISOString().slice(0, 10) !== iso) return null;
+  return iso;
+}

@@ -115,6 +115,58 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"bank_statement_lines": {
+                  Row: {
+                    "account_id": string,"amount_cents": number,"description": string,"id": string,"ignore_reason": string | null,"line_date": string,"line_number": number,"matched_at": string | null,"matched_by": string | null,"matched_entry_id": string | null,"statement_id": string,"status": string,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"amount_cents": number,"description": string,"id"?: string,"ignore_reason"?: string | null,"line_date": string,"line_number": number,"matched_at"?: string | null,"matched_by"?: string | null,"matched_entry_id"?: string | null,"statement_id": string,"status"?: string,"unit_id": string
+                  }
+                  Update: {
+                    "account_id"?: string,"amount_cents"?: number,"description"?: string,"id"?: string,"ignore_reason"?: string | null,"line_date"?: string,"line_number"?: number,"matched_at"?: string | null,"matched_by"?: string | null,"matched_entry_id"?: string | null,"statement_id"?: string,"status"?: string,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bank_statement_lines_matched_entry_id_unit_id_fkey"
+      columns: ["matched_entry_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "finance_entries"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "bank_statement_lines_statement_id_unit_id_fkey"
+      columns: ["statement_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "bank_statements"
+      referencedColumns: ["id","unit_id"]
+    }
+                  ]
+                },"bank_statements": {
+                  Row: {
+                    "account_id": string,"created_at": string,"created_by": string | null,"file_name": string,"file_sha256": string,"id": string,"line_count": number,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"created_at"?: string,"created_by"?: string | null,"file_name": string,"file_sha256": string,"id"?: string,"line_count": number,"unit_id": string
+                  }
+                  Update: {
+                    "account_id"?: string,"created_at"?: string,"created_by"?: string | null,"file_name"?: string,"file_sha256"?: string,"id"?: string,"line_count"?: number,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bank_statements_account_id_unit_id_fkey"
+      columns: ["account_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "finance_accounts"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "bank_statements_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"client_duplicate_dismissals": {
                   Row: {
                     "client_a": string,"client_b": string,"created_at": string,"created_by": string | null,"reason": string,"unit_id": string
@@ -199,6 +251,130 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"commission_goals": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"goal_cents": number,"id": string,"period_end": string,"period_start": string,"plan_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"goal_cents": number,"id"?: string,"period_end": string,"period_start": string,"plan_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"goal_cents"?: number,"id"?: string,"period_end"?: string,"period_start"?: string,"plan_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commission_goals_plan_id_fkey"
+      columns: ["plan_id"]
+isOneToOne: false
+      referencedRelation: "commission_plans"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"commission_plan_tiers": {
+                  Row: {
+                    "min_achievement_pct": number,"plan_id": string,"rate_pct": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "min_achievement_pct": number,"plan_id": string,"rate_pct": number
+                  }
+                  Update: {
+                    "min_achievement_pct"?: number,"plan_id"?: string,"rate_pct"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commission_plan_tiers_plan_id_fkey"
+      columns: ["plan_id"]
+isOneToOne: false
+      referencedRelation: "commission_plans"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"commission_plans": {
+                  Row: {
+                    "activated_at": string | null,"activated_by": string | null,"amount_basis": string | null,"base_scope": string | null,"beneficiary_id": string,"created_at": string,"created_by": string | null,"goal_type": string,"id": string,"item_filter": string | null,"name": string,"period_start_day": number | null,"period_type": string | null,"preset_key": string | null,"refund_policy": string | null,"revenue_source": string | null,"status": string,"tier_mode": string | null,"unit_id": string,"updated_at": string,"commission_plan_pending": (string)[] | null
+                  }
+                  ComputedFields: "commission_plan_pending"
+                  Insert: {
+                    "activated_at"?: string | null,"activated_by"?: string | null,"amount_basis"?: string | null,"base_scope"?: string | null,"beneficiary_id": string,"created_at"?: string,"created_by"?: string | null,"goal_type": string,"id"?: string,"item_filter"?: string | null,"name": string,"period_start_day"?: number | null,"period_type"?: string | null,"preset_key"?: string | null,"refund_policy"?: string | null,"revenue_source"?: string | null,"status"?: string,"tier_mode"?: string | null,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "activated_at"?: string | null,"activated_by"?: string | null,"amount_basis"?: string | null,"base_scope"?: string | null,"beneficiary_id"?: string,"created_at"?: string,"created_by"?: string | null,"goal_type"?: string,"id"?: string,"item_filter"?: string | null,"name"?: string,"period_start_day"?: number | null,"period_type"?: string | null,"preset_key"?: string | null,"refund_policy"?: string | null,"revenue_source"?: string | null,"status"?: string,"tier_mode"?: string | null,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commission_plans_beneficiary_id_fkey"
+      columns: ["beneficiary_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "commission_plans_preset_key_fkey"
+      columns: ["preset_key"]
+isOneToOne: false
+      referencedRelation: "commission_presets"
+      referencedColumns: ["key"]
+    },{
+      foreignKeyName: "commission_plans_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"commission_presets": {
+                  Row: {
+                    "goal_type": string,"key": string,"name": string,"notes": string,"tiers": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "goal_type": string,"key": string,"name": string,"notes": string,"tiers": NonNullable<Json>
+                  }
+                  Update: {
+                    "goal_type"?: string,"key"?: string,"name"?: string,"notes"?: string,"tiers"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"commission_statements": {
+                  Row: {
+                    "achievement_pct": number,"adjustments_cents": number,"approved_at": string | null,"approved_by": string | null,"beneficiary_id": string,"calculated_at": string,"calculated_by": string | null,"cancel_reason": string | null,"commission_cents": number,"created_at": string,"finance_entry_id": string | null,"goal_cents": number,"id": string,"parameters": NonNullable<Json>,"period_end": string,"period_start": string,"plan_id": string,"rate_pct": number,"revenue_cents": number,"status": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "achievement_pct": number,"adjustments_cents"?: number,"approved_at"?: string | null,"approved_by"?: string | null,"beneficiary_id": string,"calculated_at"?: string,"calculated_by"?: string | null,"cancel_reason"?: string | null,"commission_cents": number,"created_at"?: string,"finance_entry_id"?: string | null,"goal_cents": number,"id"?: string,"parameters": NonNullable<Json>,"period_end": string,"period_start": string,"plan_id": string,"rate_pct": number,"revenue_cents": number,"status"?: string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "achievement_pct"?: number,"adjustments_cents"?: number,"approved_at"?: string | null,"approved_by"?: string | null,"beneficiary_id"?: string,"calculated_at"?: string,"calculated_by"?: string | null,"cancel_reason"?: string | null,"commission_cents"?: number,"created_at"?: string,"finance_entry_id"?: string | null,"goal_cents"?: number,"id"?: string,"parameters"?: NonNullable<Json>,"period_end"?: string,"period_start"?: string,"plan_id"?: string,"rate_pct"?: number,"revenue_cents"?: number,"status"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commission_statements_beneficiary_id_fkey"
+      columns: ["beneficiary_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "commission_statements_finance_entry_id_unit_id_fkey"
+      columns: ["finance_entry_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "finance_entries"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "commission_statements_plan_id_unit_id_fkey"
+      columns: ["plan_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "commission_plans"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "commission_statements_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"crm_interactions": {
                   Row: {
                     "body": string,"client_unit_id": string,"created_at": string,"created_by": string | null,"id": string,"kind": string,"occurred_at": string,"unit_id": string
@@ -219,6 +395,78 @@ isOneToOne: false
       referencedColumns: ["id","unit_id"]
     },{
       foreignKeyName: "crm_interactions_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"finance_accounts": {
+                  Row: {
+                    "active": boolean,"created_at": string,"created_by": string | null,"id": string,"kind": string,"name": string,"opening_balance_cents": number,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind": string,"name": string,"opening_balance_cents"?: number,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"opening_balance_cents"?: number,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "finance_accounts_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"finance_categories": {
+                  Row: {
+                    "active": boolean,"created_at": string,"created_by": string | null,"id": string,"kind": string,"name": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind": string,"name": string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"name"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "finance_categories_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"finance_entries": {
+                  Row: {
+                    "account_id": string | null,"amount_cents": number,"cancel_reason": string | null,"category_id": string,"counterparty": string | null,"created_at": string,"created_by": string | null,"description": string,"document_ref": string | null,"due_date": string,"id": string,"kind": string,"notes": string | null,"paid_at": string | null,"source": string,"status": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id"?: string | null,"amount_cents": number,"cancel_reason"?: string | null,"category_id": string,"counterparty"?: string | null,"created_at"?: string,"created_by"?: string | null,"description": string,"document_ref"?: string | null,"due_date": string,"id"?: string,"kind": string,"notes"?: string | null,"paid_at"?: string | null,"source"?: string,"status"?: string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "account_id"?: string | null,"amount_cents"?: number,"cancel_reason"?: string | null,"category_id"?: string,"counterparty"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string,"document_ref"?: string | null,"due_date"?: string,"id"?: string,"kind"?: string,"notes"?: string | null,"paid_at"?: string | null,"source"?: string,"status"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "finance_entries_account_id_unit_id_fkey"
+      columns: ["account_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "finance_accounts"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "finance_entries_category_id_unit_id_fkey"
+      columns: ["category_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "finance_categories"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "finance_entries_unit_id_fkey"
       columns: ["unit_id"]
 isOneToOne: false
       referencedRelation: "units"
@@ -730,6 +978,30 @@ isOneToOne: false
               "client_a": string,"client_b": string,"email_a": string,"email_b": string,"name_a": string,"name_b": string,"phone_a": string,"phone_b": string,"reason": string
             }[]
                            },
+"commission_base_cents":
+{ Args: { "p": Omit<Database["public"]['Tables']["commission_plans"]['Row'], Database["public"]['Tables']["commission_plans"]['ComputedFields']>,"p_from": string,"p_to": string }; Returns: number
+                           },
+"commission_calculate":
+{ Args: { "p_manual_revenue_cents"?: number,"p_period_start": string,"p_plan_id": string }; Returns: string
+                           },
+"commission_create_plan_from_preset":
+{ Args: { "p_beneficiary_id": string,"p_name": string,"p_preset_key": string,"p_unit_id": string }; Returns: string
+                           },
+"commission_plan_beneficiary":
+{ Args: { "p_plan_id": string }; Returns: string
+                           },
+"commission_plan_pending":
+{ Args: { "p": Omit<Database["public"]['Tables']["commission_plans"]['Row'], Database["public"]['Tables']["commission_plans"]['ComputedFields']> }; Returns: (string)[]
+                           },
+"commission_plan_status":
+{ Args: { "p_plan_id": string }; Returns: string
+                           },
+"commission_plan_unit":
+{ Args: { "p_plan_id": string }; Returns: string
+                           },
+"commission_set_status":
+{ Args: { "p_reason"?: string,"p_statement_id": string,"p_status": string }; Returns: undefined
+                           },
 "create_client":
 { Args: { "p_birth_date"?: string,"p_email"?: string,"p_full_name": string,"p_identity_id"?: string,"p_phone"?: string,"p_service_notes"?: string,"p_unit_id": string }; Returns: string
                            },
@@ -741,6 +1013,32 @@ isOneToOne: false
                            },
 "dismiss_client_duplicate":
 { Args: { "p_a": string,"p_b": string,"p_reason": string,"p_unit_id": string }; Returns: undefined
+                           },
+"finance_cash_flow":
+{ Args: { "p_from": string,"p_include_sales": boolean,"p_to": string,"p_unit_id": string }; Returns: Json
+                           },
+"finance_category_kind":
+{ Args: { "p_category_id": string }; Returns: string
+                           },
+"finance_create_from_line":
+{ Args: { "p_category_id": string,"p_description": string,"p_line_id": string }; Returns: string
+                           },
+"finance_ignore_line":
+{ Args: { "p_line_id": string,"p_reason": string }; Returns: undefined
+                           },
+"finance_import_statement":
+{ Args: { "p_account_id": string,"p_file_name": string,"p_file_sha256": string,"p_lines": Json,"p_unit_id": string }; Returns: string
+                           },
+"finance_match_suggestions":
+{ Args: { "p_line_id": string }; Returns: {
+              "days_apart": number,"description": string,"due_date": string,"entry_id": string,"paid_at": string,"status": string
+            }[]
+                           },
+"finance_reconcile":
+{ Args: { "p_entry_id": string,"p_line_id": string }; Returns: undefined
+                           },
+"finance_unreconcile":
+{ Args: { "p_line_id": string }; Returns: undefined
                            },
 "find_client_candidates":
 { Args: { "p_email": string,"p_full_name": string,"p_phone": string,"p_unit_id": string }; Returns: {
@@ -790,6 +1088,9 @@ isOneToOne: false
                            },
 "is_active_unit_member":
 { Args: { "p_unit_id": string,"p_user_id": string }; Returns: boolean
+                           },
+"is_entry_reconciled":
+{ Args: { "p_entry_id": string }; Returns: boolean
                            },
 "is_own_professional":
 { Args: { "p_professional_id": string }; Returns: boolean

@@ -1,14 +1,14 @@
 # Integrações
 
-Nenhuma integração externa está implementada. Este documento registra o que
-se sabe, o que não se presume e o que precisa existir antes de cada uma.
+Registro do que está implementado, do que não se presume e do que depende
+de credenciais ou decisões externas.
 
 | Integração | Status | Fase |
 |---|---|---|
 | Trinks (migração de clientes por CSV) | **Implementada e testada na stack local** com arquivo fictício; formato real ainda não conferido | 2 |
 | E-mail transacional (convites) | Funciona na stack local (Mailpit); SMTP próprio no Cloud pendente | 0 |
 | WhatsApp | Não implementada | 4 |
-| Banco / adquirente | Não implementada | 3–4 |
+| Banco / adquirente | **Extrato por CSV implementado** (conciliação manual assistida); nenhuma API conectada | 3 |
 
 ## Trinks
 
@@ -77,12 +77,16 @@ Pré-requisitos antes de qualquer código:
 - Tabelas próprias (consentimento, fila de mensagens, registro de envio)
   desenhadas e revisadas na fase.
 
-## Banco / conciliação (Fase 4)
+## Banco e adquirente
 
-Depende do desenho financeiro da Fase 3. Alternativas a avaliar então:
-importação de extrato (OFX/CSV) ou API do banco/Open Finance via instituição
-autorizada. Nenhuma credencial bancária deve ser armazenada pela aplicação sem
-projeto e revisão específicos.
+- **Hoje**: extratos em CSV exportados do internet banking ou do portal da
+  adquirente, importados em Financeiro → Conciliação. As colunas são escolhidas
+  no envio (o formato de cada banco varia); valores aceitam `1.234,56`,
+  `-1.234,56`, `(123,45)` e `50,00-`.
+- **API**: só depois de confirmar instituição, contrato e credenciais. Nenhuma
+  credencial bancária é armazenada pela aplicação; quando existir, ficará em
+  segredos de Edge Function, com revisão de segurança própria.
+- OFX ainda não é aceito (pode ser acrescentado se o banco não oferecer CSV).
 
 ## E-mail transacional (Fase 1)
 

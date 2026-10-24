@@ -64,6 +64,8 @@ supabase db push
 | `apps/web/e2e/phase1-operations.spec.ts` | E2E | Recepção agenda nova cliente, confirma, abre e finaliza comanda; Profissional vê só a própria agenda; VIP vincula cadastro mascarado; Gerente mescla duplicidade; Gerente cadastra serviço/produto, lança estoque, vê painel e relatórios |
 | `supabase/tests/database/030_trinks_import.test.sql` | pgTAP | mapeamento só por quem tem `imports.run`, aprovação por outra pessoa, prévia e classificação (nova, vincular, possível duplicidade, já existe, repetida, inválida), problemas de campo, decisões, confirmação com origem/código, observação → CRM, vínculo sem duplicar identidade, bloqueio de reimportação, descarte com expurgo, edição volta a rascunho |
 | `apps/web/e2e/phase2-import.spec.ts` | E2E | mapeamento a partir do arquivo, aprovação por outra pessoa, prévia, decisão de possível duplicidade, confirmação, nota de CRM, bloqueio de reimportação |
+| `supabase/tests/database/040_finance.test.sql` | pgTAP | acesso ao financeiro por papel e unidade, regras de lançamento (categoria × tipo, pago exige data/conta, valor pago imutável, cancelamento com motivo, sem DELETE, origem reservada), importação de extrato e bloqueio de repetição, sugestões, conciliação, criar a partir da linha, ignorar, desfazer, fluxo de caixa com/sem vendas, comissões (modelos 0,8/2 e 0,5/1,5, parâmetros a confirmar bloqueiam ativação, ninguém cria a própria, faixas imutáveis em plano ativo, meta obrigatória, apuração única, aprovação por outra pessoa, pagamento gera despesa, valor informado, progressiva, visibilidade própria) |
+| `apps/web/e2e/phase3-finance.spec.ts` | E2E | conta, lançamento, extrato CSV, conciliação, lançamento a partir da linha, fluxo de caixa; plano a partir de modelo, bloqueio por parâmetros a confirmar, ativação, meta, apuração, aprovação e pagamento por outra pessoa, vendedora vê a própria comissão |
 | `apps/web/src/**/*.test.ts` | Unitário | formatação, telefone, dinheiro, mensagens de erro, cálculo de permissões efetivas |
 | `tests/legacy/rls_phase1_baseline_test.sql` | SQL (histórico) | 70 asserções do modelo inicial (papéis fixos), preservadas como registro |
 
@@ -79,6 +81,8 @@ supabase db push
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 1 | typecheck, lint, 12 unitários, build sem aviso de tamanho, bundle sem segredo, E2E 7/7 |
 | 2026-10-24 | 1 | Stack local oficial | Fase 2 | `supabase test db`: 206/206 (69 + 99 + 38); integração: 26/26 |
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 2 | typecheck, lint, 17 unitários (inclui leitura de CSV UTF-8/Windows-1252), build, bundle sem segredo, E2E 8/8 |
+| 2026-10-24 | 1 | Stack local oficial | Fase 3 | `supabase test db`: 264/264 (69 + 99 + 38 + 58); integração: 26/26 |
+| 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 3 | typecheck, lint, 19 unitários (inclui valores/datas de extrato), build, bundle sem segredo, E2E 10/10 |
 | — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
 
 ### Falhas encontradas e corrigidas na Fase 0
@@ -114,6 +118,17 @@ supabase db push
 | Busca de clientes tratava como telefone nomes com 4+ dígitos | E2E | telefone só quando o termo é numérico |
 | Mensagens do banco com "á" eram trocadas por mensagem genérica | E2E | detector de português ampliado + teste unitário |
 | Navegação logo após o MFA às vezes voltava à tela de MFA nos testes | E2E | helper aguarda a conclusão do MFA |
+
+### Falhas encontradas e corrigidas na Fase 3
+
+| Falha | Como foi achada | Correção |
+|---|---|---|
+| A Supabase CLI divide incorretamente funções com `... END THEN` dentro de `IF` (erro de sintaxe na migração) | `supabase db reset` | calcular o valor antes do `IF`; regra registrada no CLAUDE.md |
+| Checagem de categoria × tipo consultava categorias sob RLS (pessoa com `finance.manage` sem `finance.view` passaria) | revisão | função auxiliar `finance_category_kind` |
+| `preset_key` fora do GRANT de inserção | pgTAP | GRANT corrigido |
+| Teste chamava a apuração dentro de `WHERE` (executada várias vezes) | pgTAP | teste corrigido |
+| Pessoas de teste com o mesmo nome em execuções diferentes levavam a escolher a pessoa errada | E2E | nomes únicos por execução |
+| Apurações de execuções anteriores tornavam a linha ambígua | E2E | coluna "Plano" na apuração (também melhora a tela) |
 
 ## Roteiro manual no Cloud de desenvolvimento (nível 2)
 

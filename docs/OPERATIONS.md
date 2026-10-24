@@ -110,6 +110,31 @@ prévia com classificação; decisão obrigatória nas possíveis duplicidades;
 confirmação grava; mesmo arquivo não é importado duas vezes na unidade.
 Rotina mensal do administrador do banco: `select public.import_purge_staging(30);`.
 
+## Financeiro
+
+- **Contas** (caixa, banco, adquirente, outro) com saldo inicial e
+  **categorias** de receita e despesa por unidade (categorias iniciais criadas
+  pela migração; editáveis).
+- **Lançamentos**: previsto → pago (data e conta obrigatórias) ou cancelado
+  (motivo obrigatório) **(banco)**. Valor de lançamento pago não muda;
+  lançamento conciliado não muda valor, data, conta nem situação até desfazer a
+  conciliação **(banco)**. Não há exclusão.
+- **Fluxo de caixa**: realizado (pagos) e previsto (a receber/a pagar) por dia,
+  por categoria e saldo das contas. As vendas das comandas podem ser incluídas
+  quando não forem lançadas manualmente como receita — **a direção precisa
+  definir qual prática adotar** para não contar em dobro.
+- **Conciliação** (permissão própria): extrato CSV de banco ou adquirente com
+  mapeamento das colunas no envio (data, descrição, valor ou crédito/débito);
+  o mesmo arquivo não entra duas vezes na conta **(banco)**. Para cada linha:
+  conciliar com sugestão (mesmo valor, tipo compatível, até 7 dias), criar
+  lançamento a partir da linha (ex.: tarifa) ou ignorar com motivo. Conciliar
+  um lançamento previsto o marca como pago na data e conta do extrato
+  **(banco)**.
+
+## Comissões
+
+Ver `docs/COMMISSIONS.md` (parâmetros a confirmar, exemplos e regras).
+
 ## Rotinas administrativas
 
 ### Entrada de pessoa

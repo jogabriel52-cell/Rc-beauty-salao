@@ -39,3 +39,25 @@ describe("CSV da importação", () => {
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
   });
 });
+
+import { parseBankAmount, parseBankDate } from "./csv";
+
+describe("extrato bancário", () => {
+  it("interpreta valores em formatos comuns", () => {
+    expect(parseBankAmount("1.234,56")).toBe(123456);
+    expect(parseBankAmount("-1.234,56")).toBe(-123456);
+    expect(parseBankAmount("1234.56")).toBe(123456);
+    expect(parseBankAmount("(123,45)")).toBe(-12345);
+    expect(parseBankAmount("R$ -10,00")).toBe(-1000);
+    expect(parseBankAmount("50,00-")).toBe(-5000);
+    expect(parseBankAmount("abc")).toBeNull();
+    expect(parseBankAmount("")).toBeNull();
+  });
+  it("interpreta datas e rejeita inválidas", () => {
+    expect(parseBankDate("05/01/2031", "DD/MM/YYYY")).toBe("2031-01-05");
+    expect(parseBankDate("2031-01-05", "YYYY-MM-DD")).toBe("2031-01-05");
+    expect(parseBankDate("01/05/2031", "MM/DD/YYYY")).toBe("2031-01-05");
+    expect(parseBankDate("31/02/2031", "DD/MM/YYYY")).toBeNull();
+    expect(parseBankDate("x", "DD/MM/YYYY")).toBeNull();
+  });
+});

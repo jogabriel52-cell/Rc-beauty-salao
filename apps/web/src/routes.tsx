@@ -18,6 +18,8 @@ const SaleDetailPage = page(() => import("./pages/ops/SalesPages"), "SaleDetailP
 const StockPage = page(() => import("./pages/ops/StockPage"), "StockPage");
 const ReportsPage = page(() => import("./pages/ops/ReportsPage"), "ReportsPage");
 const ImportPage = page(() => import("./pages/ops/ImportPage"), "ImportPage");
+const FinancePage = page(() => import("./pages/finance/FinancePage"), "FinancePage");
+const CommissionsPage = page(() => import("./pages/finance/CommissionsPage"), "CommissionsPage");
 const AccountPage = page(() => import("./pages/AccountPage"), "AccountPage");
 const PeoplePage = page(() => import("./pages/admin/PeoplePage"), "PeoplePage");
 const AccessProfilesPage = page(() => import("./pages/admin/AccessProfilesPage"), "AccessProfilesPage");
@@ -42,4 +44,6 @@ export const routes = [
   <Route key="estoque" path="estoque" element={wrap(<StockPage />)} />,
   <Route key="relatorios" path="relatorios" element={wrap(<ReportsPage />)} />,
   <Route key="importacao" path="importacao" element={wrap(<ImportPage />)} />,
+  <Route key="financeiro" path="financeiro" element={wrap(<FinancePage />)} />,
+  <Route key="comissoes" path="comissoes" element={wrap(<CommissionsPage />)} />,
 ];

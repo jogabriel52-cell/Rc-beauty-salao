@@ -20,7 +20,12 @@ Sistema em construção por fases (`docs/PHASE_PLAN.md`). Situação:
   mapeamento conferido por outra pessoa, prévia com deduplicação e decisão
   humana antes de gravar. O formato real da exportação ainda precisa ser
   conferido com um arquivo do Trinks.
-- Fases 3 e 4: em andamento/não iniciadas.
+- **Fase 3 — financeiro: implementada.** Lançamentos, fluxo de caixa,
+  conciliação por CSV de banco/adquirente e comissões configuráveis. Os
+  parâmetros de comissão que não foram informados (período, base, estornos,
+  fonte do faturamento etc.) ficam "a confirmar" e bloqueiam a apuração até a
+  direção decidir (`docs/COMMISSIONS.md`).
+- Fase 4: em andamento/não iniciada.
 
 Validação feita até aqui (detalhes em `docs/BUILD_AND_VALIDATION.md`):
 
@@ -87,6 +92,7 @@ desenvolvimento, sem dados reais).
 | `docs/SECURITY_REVIEW.md` | Ameaças, controles, verificação feita e pendências |
 | `docs/PHASE_PLAN.md` | Escopo e critérios de saída das fases 0 a 4 |
 | `docs/OPERATIONS.md` | Regras operacionais do salão e rotinas administrativas |
+| `docs/COMMISSIONS.md` | Comissões: referência inicial, parâmetros a confirmar |
 | `docs/INTEGRATIONS.md` | Trinks (CSV), e-mail, WhatsApp, banco |
 | `docs/CLOUD_SETUP.md` | Configuração segura do Supabase Cloud de desenvolvimento |
 | `docs/SERVER_FUNCTIONS.md` | Contratos obrigatórios das Edge Functions de convite, desativação e importação |

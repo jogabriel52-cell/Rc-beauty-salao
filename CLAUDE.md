@@ -68,6 +68,8 @@ Stack:
 - Funções de autorização retornam `false`, nunca `NULL` (use `coalesce`).
 - `INSERT ... ON CONFLICT` aplica a política de SELECT à linha nova; prefira
   verificar existência antes quando o chamador ainda não enxerga a linha.
+- A Supabase CLI corta funções com `... END THEN` (um `CASE` terminando
+  antes do `THEN` de um `IF`). Calcule o valor numa variável antes do `IF`.
 - Toda tabela nova que referencie `client_units` precisa ser incluída em
   `public.merge_clients` (que move o histórico da unidade na mescla).
 - Clientes: nunca expor dados de outra unidade; busca entre unidades só por
@@ -143,6 +145,7 @@ mudança não for aplicada.
 | `docs/SECURITY_REVIEW.md` | Ameaças, controles, pendências antes de dados reais |
 | `docs/PHASE_PLAN.md` | Escopo e critérios de saída de cada fase |
 | `docs/OPERATIONS.md` | Regras operacionais do salão e rotinas administrativas |
+| `docs/COMMISSIONS.md` | Regras de comissão configuráveis e parâmetros a confirmar |
 | `docs/INTEGRATIONS.md` | Trinks (CSV), WhatsApp, banco — status e pré-requisitos |
 | `docs/SERVER_FUNCTIONS.md` | Contratos das Edge Functions |
 | `docs/CLOUD_SETUP.md` | Configuração do Supabase Cloud de desenvolvimento |

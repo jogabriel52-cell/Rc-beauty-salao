@@ -154,6 +154,9 @@ Valores iniciais; a direção pode alterá-los em Perfis de acesso.
 | `dashboard.view` — painel | U | U | U | | U | | U |
 | `reports.view` — relatórios | U | U | U | | | | U |
 | `imports.run` — importação Trinks | U | U | | | | | |
+| `finance.view` / `finance.manage` / `finance.reconcile` | U | U | U | | | | |
+| `commissions.view` — comissões | U | U | **P** | **P** | | **P** | |
+| `commissions.manage` — regras, metas, apuração | U | U | | | | | |
 
 Escopo **P** (próprio):
 
@@ -161,6 +164,8 @@ Escopo **P** (próprio):
   nome da cliente e as observações de atendimento chegam pela função
   `get_my_agenda`; telefone, e-mail e CRM não.
 - `sales.view` P: só comandas que a pessoa abriu, vendeu ou finalizou.
+- `commissions.view` P: só as próprias apurações e o próprio plano (ninguém
+  configura, apura, aprova ou paga a própria comissão — ver `COMMISSIONS.md`).
 
 ## Clientes: o que cada unidade enxerga
 
@@ -176,5 +181,6 @@ A edição de nome/contato por uma unidade vale para as demais unidades
 vinculadas (é a mesma identidade) e fica registrada na auditoria.
 
 Importação: o mapeamento de colunas precisa ser aprovado por pessoa diferente
-de quem o editou por último (conferência). As permissões financeiras e de
-mensagens são acrescentadas nas fases 3 e 4.
+de quem o editou por último (conferência). Comissões: a apuração é aprovada
+por pessoa diferente de quem apurou. As permissões de mensagens são
+acrescentadas na fase 4.

@@ -39,12 +39,12 @@ test.describe("Fase 1 — operação diária", () => {
     await page.getByLabel("Produto").selectOption((await opt.getAttribute("value"))!);
     await page.getByRole("button", { name: "Adicionar item" }).click();
     await expect(page.getByRole("cell", { name: /Shampoo/ })).toBeVisible();
-    await page.getByLabel("Quem vendeu").selectOption({ label: `Teste e2e-p1-vend` });
+    await page.getByLabel("Quem vendeu").selectOption({ label: vend.fullName });
     await page.getByRole("button", { name: "Adicionar pagamento" }).click();
     await expect(page.getByText(/Pago R\$\s?130,00 de R\$\s?130,00/)).toBeVisible();
     await page.getByRole("button", { name: "Finalizar comanda" }).click();
     await expect(page.getByText("Finalizada").first()).toBeVisible();
-    await expect(page.getByText("Teste e2e-p1-vend")).toBeVisible();
+    await expect(page.getByText(vend.fullName)).toBeVisible();
 
     const { data } = await admin().from("product_stock").select("quantity").eq("id", cat.productId).single();
     expect(data!.quantity).toBe(2);

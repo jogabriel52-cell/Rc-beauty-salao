@@ -57,13 +57,14 @@ export async function createPerson(
   name: string,
   links: { unit: string; profile: string }[],
   opts: { platformAdmin?: boolean } = {},
-): Promise<{ id: string; email: string }> {
+): Promise<{ id: string; email: string; fullName: string }> {
   const a = admin();
   const email = testEmail(name);
+  const fullName = `Teste ${name} ${run}`;
   const { data, error } = await a.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
   if (error || !data.user) throw error ?? new Error("createUser");
   const id = data.user.id;
-  const p = await a.from("profiles").insert({ id, full_name: `Teste ${name}` });
+  const p = await a.from("profiles").insert({ id, full_name: fullName });
   if (p.error) throw p.error;
   if (opts.platformAdmin) {
     const r = await a.from("platform_admins").insert({ user_id: id });
@@ -77,7 +78,7 @@ export async function createPerson(
     });
     if (r.error) throw r.error;
   }
-  return { id, email };
+  return { id, email, fullName };
 }
 
 export async function signIn(email: string): Promise<SupabaseClient> {
@@ -166,7 +167,7 @@ export async function seedCatalog(unitCode: string, opts: { professionalUser?: s
 }
 
 // Cliente (identidade + vínculo) criada como administrador.
-export async function seedClient(unitCode: string, name: string, phone: string, serviceNotes: string | null = null) {
+export async function seedClient(unitCode: string, name: string, phone: string | null, serviceNotes: string | null = null) {
   const a = admin();
   const unit = await unitId(unitCode);
   const ident = await a.from("client_identities").insert({ full_name: name, phone }).select("id").single();

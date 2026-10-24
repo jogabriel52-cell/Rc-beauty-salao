@@ -22,6 +22,8 @@ export const NAV: NavItem[] = [
   { to: "/comandas", label: "Comandas", section: "Operação", visible: any("sales.view", "sales.open") },
   { to: "/estoque", label: "Estoque", section: "Operação", visible: any("stock.view") },
   { to: "/relatorios", label: "Relatórios", section: "Gestão", visible: any("reports.view") },
+  { to: "/financeiro", label: "Financeiro", section: "Gestão", visible: any("finance.view", "finance.reconcile") },
+  { to: "/comissoes", label: "Comissões", section: "Gestão", visible: any("commissions.view", "commissions.manage") },
   { to: "/servicos", label: "Serviços", section: "Cadastros", visible: any("services.view") },
   { to: "/profissionais", label: "Profissionais", section: "Cadastros", visible: any("professionals.view") },
   { to: "/importacao", label: "Importação Trinks", section: "Administração", visible: any("imports.run") },
