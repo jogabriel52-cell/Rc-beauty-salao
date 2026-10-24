@@ -8,15 +8,15 @@ pedido explícito do responsável pelo projeto → este arquivo → `docs/`.
 
 Sistema de gestão para o salão RC Beauty, com duas unidades de negócio cujos
 dados ficam separados: **RC Beauty Geral** (`geral`) e **Sala VIP** (`vip`).
-Fase atual: **Fase 1 — núcleo operacional** (usuários e permissões, clientes,
-profissionais, serviços, agenda, auditoria). Ver `docs/PHASE_PLAN.md`.
+Fases: 0 acessos e segurança · 1 operação diária · 2 importação Trinks ·
+3 financeiro · 4 mensagens. Situação em `docs/PHASE_PLAN.md`.
 
 Stack:
 
 - Banco, Auth e funções server-side: **Supabase** (PostgreSQL + RLS, Auth,
   Edge Functions em Deno/TypeScript).
-- Frontend: **React + TypeScript + Vite**, em `apps/web/` (ainda não criado).
-  Hospedagem do frontend será decidida depois do MVP local.
+- Frontend: **React + TypeScript + Vite**, em `apps/web/`. Hospedagem será
+  decidida depois do MVP local. **Não fazer deploy nem conectar à produção.**
 - Migrações versionadas em `supabase/migrations/`, aplicadas pela Supabase CLI.
 
 ## Regras não negociáveis
@@ -33,16 +33,18 @@ Stack:
    existe só em segredos de Edge Functions e no ambiente do servidor. Nunca em
    `VITE_*`, no repositório, em logs, em mensagens de erro ou em prompts.
 4. **Autorização nunca vem de `user_metadata`**, de parâmetros enviados pelo
-   cliente ou do `localStorage`. Vem das tabelas `platform_admins`,
-   `unit_memberships`, `role_permissions` e `membership_permission_overrides`.
+   cliente ou do `localStorage`. Vem de `platform_admins`, `unit_memberships`,
+   `access_profiles`/`access_profile_permissions` e
+   `membership_permission_overrides`, via `public.permission_scope`.
+   Perfis são modelos editáveis; nunca codificar nomes de cargos ou de pessoas.
 5. **Sem DELETE pela aplicação** em dados operacionais: clientes são
    arquivados, agendamentos cancelados, usuários e vínculos desativados.
 6. **Mudança de banco só por migração nova.** Nunca edite uma migração já
    aplicada em qualquer ambiente compartilhado; crie outra. Nunca rode SQL solto
    em produção. O SQL antigo do Builder não deve ser executado nem copiado.
-7. **Não crie tabelas de fases futuras** (financeiro, comissões, WhatsApp,
-   integrações bancárias) sem o projeto e a revisão descritos em
-   `docs/PHASE_PLAN.md`.
+7. **Siga a ordem das fases** de `docs/PHASE_PLAN.md`; cada fase tem migração
+   própria. Mensagens (WhatsApp) e integrações bancárias só podem ser
+   **ativadas** com credenciais oficiais, consentimento e testes.
 8. **Dados reais** (clientes, telefones, exportações do Trinks) nunca entram no
    repositório, em fixtures, em seeds, em logs ou em capturas de tela de teste.
    Use dados fictícios com domínio `.invalid`.
@@ -60,22 +62,29 @@ Stack:
 - Funções `SECURITY DEFINER` que escrevem em tabelas devem verificar a
   permissão do chamador por conta própria: dentro delas `current_user` é o dono
   da função, o que faz `public.is_server_context()` retornar verdadeiro.
+- Gatilhos de proteção rodam como o chamador e **enxergam só o que o RLS
+  permite**. Consultas de checagem que precisam ver além disso devem usar
+  funções auxiliares `SECURITY DEFINER` de leitura.
+- Funções de autorização retornam `false`, nunca `NULL` (use `coalesce`).
+- `INSERT ... ON CONFLICT` aplica a política de SELECT à linha nova; prefira
+  verificar existência antes quando o chamador ainda não enxerga a linha.
 - `created_by`, `created_at` e `updated_at` são preenchidos pelo gatilho
   `tg_stamp`; o cliente não envia esses campos (os GRANTs por coluna impedem).
 - Toda tabela operacional nova recebe: RLS, políticas, GRANT por coluna,
   `tg_stamp`, `tg_unit_immutable`, `tg_audit` e testes em
-  `supabase/tests/`.
+  `supabase/tests/database/` (pgTAP) e `tests/integration/`.
 - Datas e horas em `timestamptz`; exibição em `America/Sao_Paulo`. Dinheiro em
   centavos (`integer`), moeda BRL.
 
 ### Checklist para nova permissão ou tabela
 
 1. Migração nova com tabela, RLS, políticas, GRANTs, gatilhos.
-2. Permissão nova em `public.permissions` e atribuição em `role_permissions`.
+2. Permissão nova em `public.permissions` (módulo, ação, escopos permitidos) e
+   atribuição nos perfis iniciais por `access_profiles.key`.
 3. Testes positivos e negativos para cada papel e para as duas unidades.
 4. Atualizar `docs/ACCESS_CONTROL.md` (matriz de papéis).
-5. `scripts/precheck-migrations.sh` e, quando disponível, `supabase db reset`
-   + testes na stack local.
+5. `supabase db reset`, `supabase test db`, `npm run test:integration` e
+   regenerar tipos do frontend.
 
 ## Convenções de frontend
 
@@ -93,14 +102,22 @@ Stack:
 ## Comandos
 
 ```bash
-./scripts/precheck-migrations.sh      # migrações + testes em Postgres descartável
-supabase start                         # stack local (Docker)
+supabase start                         # stack local oficial (Docker)
 supabase db reset                      # recria o banco local a partir das migrações
-psql "<DB_URL local>" -v ON_ERROR_STOP=1 -f supabase/tests/rls_phase1_test.sql
-supabase gen types typescript --local > apps/web/src/lib/database.types.ts
+supabase test db                       # pgTAP (supabase/tests/database)
+npm install                            # raiz: workspace + testes de integração
+npm run test:integration               # usuários reais na stack local
+./scripts/write-local-env.sh           # apps/web/.env.local (URL + chave publicável)
+npm run -w apps/web gen:types          # tipos do banco para o frontend
+npm run -w apps/web dev                # http://localhost:5173
+npm run -w apps/web typecheck && npm run -w apps/web lint && npm run -w apps/web test
+npm run -w apps/web build && npm run -w apps/web check:bundle
+npm run -w apps/web e2e                # Playwright contra a stack local
+./scripts/precheck-migrations.sh       # nível 0 (preliminar, sem Docker)
 ```
 
-Comandos do frontend serão adicionados aqui quando `apps/web/` existir.
+Após editar Edge Functions, reinicie o container `supabase_edge_runtime_*` se a
+mudança não for aplicada.
 
 ## Como trabalhar
 
@@ -127,3 +144,4 @@ Comandos do frontend serão adicionados aqui quando `apps/web/` existir.
 | `docs/CLOUD_SETUP.md` | Configuração do Supabase Cloud de desenvolvimento |
 | `docs/BUILD_AND_VALIDATION.md` | Níveis de validação e evidências exigidas |
 | `supabase/BOOTSTRAP.md` | Criação do primeiro Admin Geral |
+| `tests/legacy/README.md` | Registro dos testes do modelo inicial |

@@ -1,0 +1,94 @@
+-- Helpers compartilhados pelos testes pgTAP (incluído com \ir por cada teste).
+-- Tudo é criado dentro da transação do teste e desfeito no ROLLBACK final.
+-- Somente para bancos locais ou de desenvolvimento: insere usuários em auth.users.
+
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions;
+
+create schema tests;
+grant usage on schema tests to authenticated, anon;
+
+create temp table test_ids (k text primary key, v uuid not null);
+grant select on test_ids to authenticated, anon;
+
+create function tests.id(p_key text) returns uuid language sql stable as $$
+  select v from test_ids where k = p_key
+$$;
+
+-- Cria usuário no Auth + perfil ativo. Retorna o id.
+create function tests.create_person(p_key text, p_active boolean default true) returns uuid
+language plpgsql as $$
+declare v uuid := gen_random_uuid();
+begin
+  insert into test_ids (k, v) values (p_key, v);
+  insert into auth.users (id, email) values (v, p_key || '@teste.invalid');
+  insert into public.profiles (id, full_name, active, deactivation_reason)
+  values (v, 'Pessoa ' || p_key, p_active, case when p_active then null else 'teste' end);
+  return v;
+end $$;
+
+-- Somente usuário no Auth (sem perfil), como logo após o convite.
+create function tests.create_auth_user(p_key text) returns uuid
+language plpgsql as $$
+declare v uuid := gen_random_uuid();
+begin
+  insert into test_ids (k, v) values (p_key, v);
+  insert into auth.users (id, email) values (v, p_key || '@teste.invalid');
+  return v;
+end $$;
+
+create function tests.unit(p_code text) returns uuid language sql stable as $$
+  select id from public.units where code = p_code
+$$;
+
+create function tests.profile(p_key text) returns uuid language sql stable as $$
+  select id from public.access_profiles where key = p_key
+$$;
+
+-- Vínculo criado como administrador do banco (sem guardas de ator).
+create function tests.link(p_person text, p_unit text, p_profile text) returns uuid
+language plpgsql as $$
+declare v uuid;
+begin
+  insert into public.unit_memberships (user_id, unit_id, access_profile_id)
+  values (tests.id(p_person), tests.unit(p_unit), tests.profile(p_profile))
+  returning id into v;
+  return v;
+end $$;
+
+create function tests.membership(p_person text, p_unit text) returns uuid language sql stable as $$
+  select id from public.unit_memberships where user_id = tests.id(p_person) and unit_id = tests.unit(p_unit)
+$$;
+
+-- Simula a sessão de um usuário pela Data API (role authenticated + claims).
+create function tests.login(p_person text, p_aal text default 'aal1') returns void
+language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object(
+    'sub', tests.id(p_person), 'role', 'authenticated', 'aal', p_aal)::text, true);
+  perform set_config('request.jwt.claim.sub', tests.id(p_person)::text, true);
+  perform set_config('role', 'authenticated', true);
+end $$;
+
+create function tests.anon() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('role', 'anon', true);
+end $$;
+
+-- Usar SEMPRE logo após `reset role` para voltar ao administrador do banco.
+create function tests.clear() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', '', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+end $$;
+
+create function tests.count(p_sql text) returns bigint language plpgsql as $$
+declare n bigint;
+begin
+  execute 'with q as (' || p_sql || ') select count(*) from q' into n;
+  return n;
+end $$;
+
+grant execute on all functions in schema tests to authenticated, anon;

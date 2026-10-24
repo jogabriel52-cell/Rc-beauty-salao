@@ -1,0 +1,21 @@
+{
+  "name": "rc-beauty",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "precheck": "./scripts/precheck-migrations.sh",
+    "db:reset": "supabase db reset",
+    "test:db": "supabase test db",
+    "test:integration": "vitest run --config tests/integration/vitest.config.ts",
+    "test": "npm run test:db && npm run test:integration && npm run -w apps/web test"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

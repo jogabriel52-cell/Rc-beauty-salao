@@ -1,90 +1,68 @@
 # Plano de fases
 
-Cada fase tem escopo fechado e critérios de saída. Uma fase só começa quando a
-anterior atingiu seus critérios, salvo decisão explícita do responsável pelo
-projeto. Tabelas de uma fase não são criadas antecipadamente.
+Escopo de referência definido pelo responsável pelo projeto em 2026-10-24.
+Cada fase entrega banco (migração própria), permissões, telas e testes, e
+atualiza a documentação. Situação atual de cada fase no fim deste arquivo.
 
-## Fase 0 — Fundação
+## Fase 0 — Fundação, segurança e acessos
 
-**Escopo**
+- Validar migrações e segurança no Supabase oficial (stack local; depois projeto
+  Cloud exclusivo de desenvolvimento, com Security Advisor).
+- Auth por convite (cadastro público desativado).
+- MFA obrigatório para Direção e Admin Geral.
+- Gestão de pessoas e permissões: perfis editáveis (Admin Geral, Direção,
+  Gerente, Vendedora, Recepção, Profissional, Somente leitura), unidades,
+  módulos, ações, escopo e exceções individuais; ninguém altera as próprias
+  permissões; toda concessão auditada.
 
-- Repositório Git com este pacote; proteção da branch principal.
-- Projeto Supabase de desenvolvimento dedicado (`docs/CLOUD_SETUP.md`).
-- Supabase CLI instalada; `supabase init`; stack local funcionando.
-- Migração da Fase 1 aplicada no local e no desenvolvimento.
-- Bootstrap do primeiro Admin Geral (`supabase/BOOTSTRAP.md`).
+## Fase 1 — Operação diária
 
-**Critérios de saída**
+- Clientes/CRM com identidade única e vínculo separado por unidade; notas e
+  histórico de CRM por unidade; possíveis duplicidades apresentadas para
+  revisão, sem mescla automática.
+- Serviços, profissionais e agenda; profissionais veem só a própria agenda com
+  os dados mínimos da cliente.
+- Vendas/comandas: abrir, vender, finalizar, registrando quem abriu, quem
+  vendeu e quem finalizou.
+- Estoque e dashboard operacional.
 
-- `scripts/precheck-migrations.sh` e testes na stack local passando.
-- Migração aplicada no projeto de desenvolvimento; Security Advisor revisado.
-- Admin Geral criado; registro de quem fez e quando.
+## Fase 2 — Importação do Trinks
 
-## Fase 1 — Núcleo operacional (MVP)
-
-**Escopo de banco** (já na migração inicial): unidades, perfis, Admin Geral,
-papéis, permissões, vínculos, exceções, profissionais, serviços, clientes,
-agendamentos, auditoria.
-
-**Escopo a implementar**
-
-- Edge Functions: `admin-invite-user`, `admin-deactivate-user`,
-  `admin-reactivate-user` (`docs/SERVER_FUNCTIONS.md`).
-- Frontend (`apps/web/`):
-  - Login, definição de senha pelo convite, troca de senha, logout.
-  - Seletor de unidade a partir dos vínculos ativos.
-  - Agenda do dia/semana por profissional; criar, remarcar, confirmar,
-    concluir, marcar falta, cancelar com motivo.
-  - "Minha agenda" para profissionais (`get_my_agenda`).
-  - Clientes: busca por nome/telefone, cadastro, edição, arquivamento.
-  - Serviços e profissionais: cadastro e edição.
-  - Administração (Admin Geral): usuários, vínculos, papéis, exceções,
-    desativação/reativação.
-  - Auditoria: consulta filtrada por unidade, tabela e período.
-- MFA para Admin Geral (pendência P5).
-
-**Critérios de saída**
-
-- Todos os testes de banco e de frontend passando (`BUILD_AND_VALIDATION.md`).
-- Teste manual com um usuário de cada papel em cada unidade, roteiro registrado.
-- Pendências bloqueantes P1–P8 de `SECURITY_REVIEW.md` concluídas.
-- Uso piloto com dados fictícios aprovado pela gestão do salão.
-
-## Fase 2 — Migração do Trinks e agenda completa
-
-**Escopo**
-
-- Importação de clientes a partir de CSV de exportação real do Trinks:
-  staging, validação, relatório de prévia, confirmação, rastreabilidade
-  (`docs/INTEGRATIONS.md`, `docs/SERVER_FUNCTIONS.md`).
-- Importação de histórico de atendimentos apenas se a exportação permitir e o
-  mapeamento for conferido.
-- Horários de funcionamento por unidade, jornada de profissionais, bloqueios
-  de agenda (folgas, intervalos).
-- Permissão nova `imports.run`.
-
-**Pré-requisitos**: arquivo real de exportação analisado (sem versionar), mapa
-de colunas aprovado, revisão de segurança da fase.
+- Importação controlada por CSV: prévia, deduplicação e conferência antes de
+  gravar. Nenhuma API do Trinks é presumida.
 
 ## Fase 3 — Financeiro
 
-**Escopo candidato** (exige projeto próprio antes de qualquer tabela):
-comandas/atendimentos realizados, formas de pagamento, caixa diário, comissões
-de profissionais, relatórios.
+- Fluxo de caixa, despesas/receitas, conciliação (CSV de banco/adquirente até
+  haver API e credenciais confirmadas) e comissões com regras configuráveis.
+- Referência inicial de comissões (a confirmar): vendedoras com meta individual
+  — 0,8% abaixo de 100% da meta e 2% ao atingir; gerente com meta coletiva —
+  0,5% abaixo de 100% e 1,5% ao atingir. Período, base de cálculo, estornos e
+  fonte do faturamento ficam configuráveis e documentados como pendentes de
+  confirmação.
 
-**Pré-requisitos**: regras de comissão e de caixa escritas e aprovadas;
-definição de quem pode ver valores; revisão de segurança; decisão sobre emissão
-fiscal (fora do escopo até decisão contrária).
+## Fase 4 — Mensagens e relacionamento
 
-## Fase 4 — Integrações externas
+- WhatsApp oficial, caixa de entrada, consentimento e opt-out, follow-up, SDR IA,
+  pesquisa de satisfação e reengajamento de clientes inativas.
+- Mensagens só podem ser ativadas com credenciais oficiais, consentimento e
+  testes.
 
-**Escopo candidato**: confirmação e lembrete de agendamento por WhatsApp
-(provedor oficial), conciliação bancária. Ver `docs/INTEGRATIONS.md`.
+## Regras gerais
 
-**Pré-requisitos**: escolha de provedor com contrato, consentimento dos
-clientes (LGPD), revisão de segurança, gestão de segredos de terceiros.
+- Nada de deploy ou conexão com produção. Validação primeiro na stack local
+  oficial; depois em projeto Cloud exclusivo de desenvolvimento.
+- Sem dados reais de clientes em nenhum ambiente de desenvolvimento.
+- Ao final de cada fase: o que foi implementado, testes executados, falhas
+  corrigidas e o que depende de credenciais ou decisões externas
+  (`docs/BUILD_AND_VALIDATION.md`).
 
-## Fora do escopo até decisão explícita
+## Situação
 
-Aplicativo móvel nativo, agendamento online pelo cliente final, cadastro
-unificado de clientes entre unidades, emissão de nota fiscal, estoque.
+| Fase | Situação | Validação |
+|---|---|---|
+| 0 | Implementada | Stack local oficial: pgTAP, integração com usuários reais, E2E. Cloud de desenvolvimento: **pendente** (referência do projeto não informada). |
+| 1 | Em andamento | — |
+| 2 | Não iniciada | — |
+| 3 | Não iniciada | — |
+| 4 | Não iniciada | — |

@@ -1,106 +1,141 @@
 # Controle de acesso
 
-Toda regra deste documento é aplicada no banco (RLS, GRANTs e gatilhos da
-migração `20261024000000_phase1_core.sql`). A interface apenas reflete essas
-regras para não oferecer ações que vão falhar.
+Todas as regras deste documento são aplicadas **no banco** (RLS, GRANTs e
+gatilhos). A interface só reflete essas regras para não oferecer ações que vão
+falhar. Implementação: `supabase/migrations/20261025000000_phase0_access_model.sql`
+e as políticas de cada módulo nas migrações das fases seguintes.
 
 ## Conceitos
 
-| Conceito | Tabela | Descrição |
+| Conceito | Onde | Descrição |
 |---|---|---|
-| Usuário | `auth.users` + `profiles` | Conta do Auth com perfil de aplicação. Sem perfil ativo, nenhum acesso. |
-| Admin Geral | `platform_admins` | Administra unidades, usuários, vínculos e exceções; lê toda a auditoria. |
+| Pessoa | `auth.users` + `profiles` | Conta do Auth com perfil de aplicação. Sem perfil ativo, nenhum acesso. |
 | Unidade | `units` | `geral` (RC Beauty Geral) e `vip` (Sala VIP). |
-| Vínculo | `unit_memberships` | Liga um usuário a uma unidade com **um** papel-base. Sem vínculo ativo, nenhum dado da unidade. |
-| Papel-base | `role_permissions` | Conjunto padrão de permissões. |
-| Exceção individual | `membership_permission_overrides` | Concede (`grant`) ou revoga (`revoke`) uma permissão para um vínculo, com motivo obrigatório. |
+| Perfil de acesso | `access_profiles` + `access_profile_permissions` | **Modelo editável** de permissões. Não é cargo fixo no código. |
+| Permissão | `permissions` | `módulo.ação`, com os escopos permitidos. |
+| Escopo | `access_scope` | `own` = somente o que é da própria pessoa; `unit` = toda a unidade. |
+| Vínculo | `unit_memberships` | Pessoa × unidade com **um** perfil de acesso. Sem vínculo ativo, nenhum dado da unidade. |
+| Exceção individual | `membership_permission_overrides` | Concede (com escopo) ou revoga uma permissão em um vínculo, com motivo obrigatório. |
+| Admin Geral | `platform_admins` | Marca de superadministração (criada só pelo administrador do banco). |
 
-**Permissão efetiva** em uma unidade = (permissões do papel − revogações) ∪
-concessões, e só existe se o perfil, o vínculo e a unidade estiverem ativos.
-Implementação: `public.has_permission(unit_id, code)`.
+**Permissão efetiva** na unidade (`public.permission_scope(unit, código)`):
 
-### Admin Geral e acesso operacional
+1. só existe com perfil de pessoa ativo, vínculo ativo, unidade ativa e MFA
+   satisfeito (quando exigido);
+2. revogação individual remove a permissão;
+3. caso contrário, vale o **maior** escopo entre o perfil e a concessão individual.
 
-O Admin Geral **não** lê clientes ou agenda de uma unidade apenas por ser Admin
-Geral. Para operar uma unidade ele precisa de vínculo explícito, criado por ele
-mesmo e registrado na auditoria. Assim a separação Geral × VIP vale para todos,
-e todo acesso a dados de clientes tem um vínculo rastreável.
+## Perfis iniciais (modelos editáveis)
 
-## Papéis-base
+Criados pela migração com uma chave interna (`key`) que só serve para as
+migrações encontrarem os modelos. Nome, descrição, exigência de MFA e
+permissões são editáveis em **Perfis de acesso**.
 
-| Permissão | admin_unidade | recepcao | profissional | somente_leitura |
-|---|:-:|:-:|:-:|:-:|
-| `clients.view` | ✔ | ✔ | | ✔ |
-| `clients.create` | ✔ | ✔ | | |
-| `clients.update` | ✔ | ✔ | | |
-| `clients.archive` | ✔ | | | |
-| `professionals.view` | ✔ | ✔ | ✔ | ✔ |
-| `professionals.manage` | ✔ | | | |
-| `services.view` | ✔ | ✔ | ✔ | ✔ |
-| `services.manage` | ✔ | | | |
-| `appointments.view_all` | ✔ | ✔ | | ✔ |
-| `appointments.view_own` | ✔ | | ✔ | |
-| `appointments.create` | ✔ | ✔ | | |
-| `appointments.update` | ✔ | ✔ | | |
-| `appointments.cancel` | ✔ | ✔ | | |
-| `audit.view` | ✔ | | | |
+| Perfil | MFA | Intenção |
+|---|:-:|---|
+| Admin Geral | ✔ | Acesso completo às unidades vinculadas, inclusive gestão de acessos. Atribuído ao João no bootstrap. |
+| Direção | ✔ | Acesso completo aos módulos das unidades vinculadas, inclusive financeiro e gestão de acessos. Previsto para Rosa, Amanda e Giarlisson (cadastro feito pela direção, não no código). |
+| Gerente | | Opera agenda, clientes, comandas, estoque, relatórios e o financeiro da própria unidade. Previsto para Ivny, na unidade escolhida no cadastro. |
+| Vendedora | | CRM/WhatsApp e agendamentos; vê as próprias vendas e a própria comissão. |
+| Recepção | | Agenda, cadastro de clientes, abre e finaliza comandas. |
+| Profissional | | Somente a própria agenda (com os dados da cliente necessários ao atendimento) e a própria comissão. Cabeleireiras, manicures, lash designers. |
+| Somente leitura | | Consulta de dados operacionais, sem alterações e sem financeiro. |
 
-Observações:
+A matriz completa de permissões por perfil está ao final deste documento e é
+atualizada a cada fase.
 
-- `profissional` vê apenas agendamentos em que é o profissional
-  (`professionals.user_id` = usuário). O nome do cliente vem pela função
-  `get_my_agenda`, que não expõe telefone, e-mail ou observações do cadastro.
-- `appointments.cancel` sem `appointments.update` permite apenas cancelar
-  (status + motivo); remarcar exige `appointments.update`.
-- `clients.archive` sem `clients.update` permite apenas arquivar/restaurar.
-- Ligar um usuário a um profissional exige que ele tenha vínculo ativo na mesma
+## Gestão de acessos
+
+### Quem pode
+
+| Ação | Regra |
+|---|---|
+| Convidar pessoa, criar vínculo, trocar perfil, desativar vínculo, criar/remover exceção | `access.manage` em escopo de unidade **na unidade do vínculo** |
+| Ativar ou desativar a pessoa (todas as unidades) | `access.manage` em **todas** as unidades em que ela tem vínculo ativo |
+| Criar ou editar perfis de acesso (afetam todas as unidades) | `access.manage` em **todas** as unidades ativas, ou Admin Geral |
+| Criar ou remover Admin Geral | Somente o administrador do banco, no SQL Editor (`supabase/BOOTSTRAP.md`) |
+| Criar ou editar unidades | Admin Geral |
+
+### Proteções (gatilhos no banco)
+
+- **Ninguém altera as próprias permissões**: não cria, altera ou desativa o
+  próprio vínculo; não cria exceção para si; não edita perfil de acesso que
+  possui; não se ativa nem se desativa.
+- **Anti-escalada**: só é possível atribuir perfis e conceder exceções cujas
+  permissões (e escopos) o próprio ator possui na unidade. Para perfis, em todas
+  as unidades ativas.
+- **Admin Geral protegido**: vínculos, exceções, perfil de pessoa e modelos
+  usados pelo Admin Geral só são alterados por outro Admin Geral.
+- **Último Admin Geral ativo** não pode ser desativado nem removido.
+- **Perfil em uso** não pode ser desativado (mova as pessoas antes).
+- `user_id` de vínculo e `unit_id` de qualquer registro são imutáveis.
+- Desativar uma pessoa exige motivo e corta o acesso aos dados
+  **imediatamente**, mesmo com sessão aberta; a função de servidor também
+  bloqueia o login no Auth.
+
+### Auditoria de concessões
+
+Toda inserção, alteração ou remoção em `unit_memberships`,
+`membership_permission_overrides`, `access_profiles`,
+`access_profile_permissions`, `profiles` e `platform_admins` é registrada em
+`audit_log` com o ator (`auth.uid()`), a role do banco e o antes/depois. A tela
+**Auditoria** filtra essas concessões. Registros sem unidade (modelos de acesso)
+são visíveis para o Admin Geral e para quem tem `audit.view` em todas as
+unidades.
+
+## MFA
+
+- Perfis com **Exige MFA** (Admin Geral e Direção, por padrão) e o Admin Geral
+  só têm permissões efetivas com sessão `aal2` (senha + código TOTP). Com `aal1`,
+  o banco devolve zero permissões e a aplicação leva à tela de MFA.
+- Ao verificar o MFA, o Auth encerra as outras sessões da pessoa.
+- A exigência pode ser ligada em qualquer outro perfil pela tela de perfis.
+
+## Visibilidade de pessoas
+
+- Cada pessoa vê o próprio perfil e o nome dos colegas que compartilham alguma
+  unidade (para agenda e comandas). E-mail e status de acesso aparecem somente
+  em **Pessoas e acessos**, pela função `admin_list_people`, para quem gere a
   unidade.
 
-## Ações administrativas (somente Admin Geral)
+## Ciclo de vida
 
-| Ação | Como |
-|---|---|
-| Criar ou renomear unidade, ativar/desativar | `units` (insert/update) |
-| Convidar usuário | Edge Function `admin-invite-user` (precisa da chave secreta) |
-| Criar perfil | `profiles` insert (feito pela função de convite) |
-| Vincular a uma unidade, trocar papel, desativar vínculo | `unit_memberships` |
-| Conceder/revogar permissão individual | `membership_permission_overrides` (motivo obrigatório) |
-| Desativar/reativar usuário | Edge Function `admin-deactivate-user` / `admin-reactivate-user` |
-| Criar ou remover Admin Geral | Somente administrador do banco no SQL Editor (`supabase/BOOTSTRAP.md`) |
+1. **Entrada**: convite (nome, e-mail, cargo, unidades e perfil). A pessoa define
+   a senha pelo link do e-mail; se o perfil exigir, cadastra o MFA no primeiro
+   acesso.
+2. **Ajustes**: trocar o perfil do vínculo ou adicionar exceção com motivo.
+   Preferir ajustar o perfil a acumular exceções.
+3. **Transferência de unidade**: remover o acesso à unidade antiga e adicionar a
+   nova.
+4. **Saída/afastamento**: desativar com motivo no mesmo dia.
+5. **Revisão mensal** dos vínculos e exceções (`docs/OPERATIONS.md`).
 
-Proteções no banco:
-
-- Ninguém altera o próprio campo `active`; ninguém desativa a si mesmo.
-- Não é possível desativar ou remover o último Admin Geral ativo.
-- `user_id` de um vínculo e `unit_id` de qualquer registro são imutáveis.
-- Desativar um usuário exige motivo e corta o acesso a dados **imediatamente**,
-  mesmo que o token de sessão ainda não tenha expirado, porque toda verificação
-  consulta `profiles.active`.
-
-## Ciclo de vida do usuário
-
-1. **Entrada.** Admin Geral convida (e-mail, nome, unidades e papéis). O usuário
-   recebe o e-mail, define a senha e entra.
-2. **Mudança de função.** Admin Geral altera o papel do vínculo ou adiciona
-   exceção com motivo. Preferir mudar o papel a acumular exceções.
-3. **Transferência de unidade.** Desativar o vínculo antigo e criar o novo.
-   Nunca reaproveitar um vínculo trocando a unidade (o banco impede).
-4. **Afastamento ou desligamento.** Desativar o usuário com motivo, no mesmo dia.
-   A função também bloqueia o login no Auth.
-5. **Revisão periódica.** Mensalmente, o Admin Geral revisa vínculos ativos e
-   exceções (consultas em `OPERATIONS.md`).
-
-Usuários não são excluídos: `profiles` referencia `auth.users` com
-`on delete restrict`, o que impede apagar pelo painel uma conta que tenha
-perfil. Pedido de exclusão de dados pessoais de funcionário segue procedimento
-próprio, ainda a definir (pendência em `SECURITY_REVIEW.md`).
+Pessoas não são excluídas: `profiles` referencia `auth.users` com
+`on delete restrict`.
 
 ## Regras para quem desenvolve
 
-- Nunca usar `user_metadata` (editável pelo próprio usuário) nem
-  `app_metadata` para autorização nesta arquitetura.
-- Nunca filtrar dados por unidade apenas no frontend esperando que isso proteja
-  algo. Sempre conferir com testes que o banco recusa.
-- Nova permissão: migração + `permissions` + `role_permissions` + políticas +
-  testes + atualização desta matriz.
-- Novos papéis-base exigem justificativa; o preferido é ajustar exceções.
+- Autorização nunca vem de `user_metadata`, `app_metadata`, parâmetros do
+  cliente ou `localStorage`.
+- Gatilhos de proteção rodam como o chamador (sujeitos a RLS). Consultas que
+  precisam enxergar além do que o chamador vê usam funções auxiliares
+  `SECURITY DEFINER` (ex.: `actor_manages_person`). Erro já encontrado e
+  corrigido: uma checagem que consultava vínculos sob RLS deixava passar um
+  caso proibido.
+- Funções de autorização devem retornar `false`, nunca `NULL`, quando negam
+  (`coalesce`): `NOT NULL` é `NULL` e deixa checagens de negação passarem.
+- Nova permissão: migração + `permissions` + atribuição nos modelos por `key` +
+  políticas + testes (pgTAP e integração) + atualização da matriz abaixo.
+
+## Matriz de permissões por perfil
+
+Legenda: **U** = toda a unidade; **P** = somente o próprio; vazio = sem acesso.
+Valores iniciais; a direção pode alterá-los em Perfis de acesso.
+
+| Permissão | Admin Geral | Direção | Gerente | Vendedora | Recepção | Profissional | Somente leitura |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `access.manage` — pessoas e acessos | U | U | | | | | |
+| `audit.view` — auditoria | U | U | U | | | | |
+
+As permissões dos módulos operacionais, financeiros e de mensagens são
+acrescentadas a esta matriz nas seções das fases correspondentes.

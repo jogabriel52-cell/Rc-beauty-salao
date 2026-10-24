@@ -1,99 +1,108 @@
 # Construção e validação
 
-Este documento define o que precisa ser executado, e com qual evidência, antes
-de chamar qualquer parte do sistema de "validada". Cada nível depende do
-anterior.
+Define o que precisa ser executado, e com qual evidência, antes de chamar
+qualquer parte do sistema de "validada" — e registra o que já foi executado.
+
+## Níveis
+
+| Nível | Ambiente | Natureza |
+|---|---|---|
+| 0 | PostgreSQL puro + simulador mínimo do Auth | **Preliminar.** Não é validação do Supabase. |
+| 1 | Stack local oficial do Supabase (`supabase start`) | Validação oficial local. |
+| 2 | Projeto Supabase Cloud **exclusivo de desenvolvimento** | Validação na nuvem + Security Advisor. |
+| 3 | Aplicação (frontend + Edge Functions) contra o nível 1 ou 2 | Validação funcional ponta a ponta. |
+| 4 | Antes de dados reais | Aprovação do responsável, pendências bloqueantes resolvidas. |
+
+Nenhum nível autoriza dados reais de clientes, deploy ou conexão com produção.
 
 ## Ferramentas
 
 | Ferramenta | Uso |
 |---|---|
-| Git | versionamento |
-| Supabase CLI (versão atual estável) | stack local, migrações, tipos, funções |
-| Docker | stack local do Supabase |
-| PostgreSQL 15+ (`initdb`, `pg_ctl`, `psql`, contrib) | pré-checagem rápida e `psql` |
-| Node.js LTS + npm/pnpm | frontend (quando existir) |
-| Deno | Edge Functions (quando existirem) |
+| Supabase CLI (testado com 2.122.0) | stack local, migrações, `supabase test db`, tipos |
+| Docker | stack local |
+| Node.js 22 + npm | frontend, testes de integração e E2E |
+| PostgreSQL 15+ (opcional) | pré-checagem nível 0 |
 
-## Nível 0 — Pré-checagem em PostgreSQL puro
+## Comandos
 
 ```bash
+# Nível 0 (preliminar): migrações em PostgreSQL descartável
 ./scripts/precheck-migrations.sh
-```
 
-Cria um cluster PostgreSQL descartável, carrega um simulador mínimo do Auth do
-Supabase (`supabase/tests/shim/`), aplica todas as migrações e roda
-`supabase/tests/*_test.sql`. Falha em qualquer erro ou asserção.
-
-Serve para detectar rapidamente erros de SQL e regressões de RLS. **Não**
-reproduz o Supabase real.
-
-## Nível 1 — Stack local oficial
-
-```bash
+# Nível 1: stack local oficial
 supabase start
-supabase db reset
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -v ON_ERROR_STOP=1 -f supabase/tests/rls_phase1_test.sql
+supabase db reset                 # aplica todas as migrações do zero
+supabase test db                  # testes pgTAP (supabase/tests/database)
+npm install
+npm run test:integration          # usuários reais: Auth, MFA TOTP, Edge Functions, Data API
+
+# Nível 3: aplicação
+./scripts/write-local-env.sh      # gera apps/web/.env.local (URL + chave publicável)
+npm run -w apps/web typecheck
+npm run -w apps/web lint
+npm run -w apps/web test          # unitários
+npm run -w apps/web build && npm run -w apps/web check:bundle   # sem segredo no bundle
+npm run -w apps/web e2e           # Playwright no navegador contra a stack local
+
+# Nível 2: Cloud de desenvolvimento (somente com a referência do projeto RC Beauty dev)
+supabase link --project-ref <ref-rc-beauty-dev>
+supabase db push --dry-run
+supabase db push
+# depois: Security Advisor no painel e testes de integração apontando para o projeto
 ```
 
-(Confirme a URL do banco local com `supabase status`.)
+## Testes existentes
 
-Também:
-
-- Abrir o Studio local, Advisors, e conferir alertas de segurança.
-- Gerar tipos: `supabase gen types typescript --local`.
-
-## Nível 2 — Projeto de desenvolvimento na nuvem
-
-- `supabase db push --dry-run` revisado e `supabase db push` aplicado.
-- Security Advisor sem erros.
-- Bootstrap executado.
-- **Roteiro manual pela Data API**, com um usuário de teste por papel em cada
-  unidade, usando a chave publicável e o JWT de cada usuário (cliente
-  `supabase-js` em um script local ou pelo frontend):
-
-| # | Usuário | Ação | Esperado |
-|---|---|---|---|
-| 1 | sem login | listar `clients` | erro de permissão |
-| 2 | recepção Geral | listar `clients` | só clientes da Geral |
-| 3 | recepção Geral | criar cliente com `unit_id` da VIP | recusado |
-| 4 | recepção VIP | listar `appointments` | só agenda da VIP |
-| 5 | profissional Geral | listar `clients` | vazio |
-| 6 | profissional Geral | `rpc('get_my_agenda')` | só os próprios atendimentos |
-| 7 | somente leitura | editar cliente | nenhuma linha alterada |
-| 8 | recepção | inserir em `unit_memberships` | recusado |
-| 9 | Admin Geral sem vínculo | listar `clients` | vazio |
-| 10 | usuário desativado (sessão aberta) | listar `clients` | vazio |
-| 11 | qualquer | dois agendamentos sobrepostos do mesmo profissional | segundo recusado (`23P01`) |
-
-Registrar data, projeto, quem executou e resultado de cada linha.
-
-## Nível 3 — Aplicação
-
-Quando `apps/web/` e `supabase/functions/` existirem:
-
-- `typecheck`, `lint` e testes unitários sem erros.
-- `build` de produção sem erros e sem chave secreta no pacote gerado
-  (procurar por `sb_secret_` e `service_role` nos arquivos de `dist/`).
-- Testes das Edge Functions cobrindo os casos de `SERVER_FUNCTIONS.md`.
-- Testes de ponta a ponta (Playwright) para: login, troca de unidade, criar e
-  cancelar agendamento, cadastro de cliente, convite e desativação de usuário,
-  e as negações principais por papel.
-
-## Nível 4 — Antes de dados reais
-
-- Todos os níveis anteriores registrados.
-- Pendências bloqueantes de `SECURITY_REVIEW.md` concluídas.
-- Projeto de produção separado configurado (`CLOUD_SETUP.md`, seção 9).
-- Restauração de backup testada.
-- Aprovação explícita do responsável pelo projeto.
-
-Só depois disso o sistema pode ser descrito como validado para uso com dados
-reais — e apenas no escopo testado.
+| Arquivo | Tipo | Cobre |
+|---|---|---|
+| `supabase/tests/database/010_access_model.test.sql` | pgTAP | perfis editáveis, escopos, MFA (aal1/aal2), anti-escalada, autoproteção, proteção do Admin Geral, desativação, auditoria, estrutura (RLS, grants, search_path) |
+| `tests/integration/phase0-access.test.ts` | Integração (Vitest + Auth real) | login, MFA TOTP, encerramento de outras sessões, convite com e-mail (Mailpit), 401/403/409/400, desativação com corte imediato e bloqueio de login, reativação |
+| `apps/web/e2e/phase0-access.spec.ts` | E2E (Playwright) | entrada da Recepção, cadastro de MFA da Direção, convite, aceite do convite e definição de senha, exceção individual, desativação, bloqueio do próprio perfil |
+| `apps/web/src/**/*.test.ts` | Unitário | formatação, telefone, dinheiro, mensagens de erro, cálculo de permissões efetivas |
+| `tests/legacy/rls_phase1_baseline_test.sql` | SQL (histórico) | 70 asserções do modelo inicial (papéis fixos), preservadas como registro |
 
 ## Registro de execuções
 
-| Data | Nível | Ambiente | Executado por | Resultado |
+| Data | Nível | Ambiente | Commit / estado | Resultado |
 |---|---|---|---|---|
-| 2026-10-24 | 0 | PostgreSQL 16.15 local + simulador | Claude Code | 70 asserções passaram; bootstrap testado |
+| 2026-10-24 | 0 (preliminar) | PostgreSQL 16.15 + simulador do Auth | 31d01c2 (modelo inicial) | 70 asserções passaram; bootstrap testado |
+| 2026-10-24 | 1 | Supabase CLI 2.122.0, PostgreSQL 17.11 (stack local oficial) | 31d01c2 (modelo inicial) | Mesmas 70 asserções passaram |
+| 2026-10-24 | 1 | Stack local oficial | Fase 0 | `supabase db reset` ok; `supabase test db`: 69/69; integração: 20/20; bootstrap ok e recusa na repetição |
+| 2026-10-24 | 3 | Stack local oficial + Vite + Chromium (Playwright 1.63) | Fase 0 | typecheck, lint, 12 unitários, build, bundle sem segredo, E2E 3/3 |
+| — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
+
+### Falhas encontradas e corrigidas na Fase 0
+
+| Falha | Como foi achada | Correção |
+|---|---|---|
+| `has_unit_scope` retornava `NULL` em vez de `false`, fazendo checagens de negação passarem (ex.: gerir unidade sem permissão) | pgTAP | `coalesce(..., false)` |
+| Gatilho de modelos consultava `platform_admins` sob RLS e não via o Admin Geral | pgTAP | funções auxiliares `SECURITY DEFINER` |
+| Checagem "gere todas as unidades da pessoa" consultava vínculos sob RLS; Gerente da Geral conseguia desativar pessoa que também atua na VIP | pgTAP | `actor_manages_person` sem RLS |
+| `INSERT ... ON CONFLICT` em `profiles` aplicava política de SELECT à linha nova | pgTAP | verificação prévia com `profile_exists` |
+| `[auth.email] enable_signup = false` desligava o login por e-mail | integração | manter `true`; bloqueio de cadastro é `[auth] enable_signup = false` |
+| Edge Runtime local não baixava `supabase-js` (CA do proxy do ambiente) | integração | funções reescritas sem dependências (somente `fetch`) |
+| Corpo validado antes da autenticação (400 em vez de 401) | integração | autenticar primeiro |
+
+## Roteiro manual no Cloud de desenvolvimento (nível 2)
+
+Com um usuário de teste por perfil em cada unidade (e-mails controlados pela
+equipe, nunca de clientes):
+
+| # | Quem | Ação | Esperado |
+|---|---|---|---|
+| 1 | sem login | listar `clients`/`unit_memberships` | erro de permissão |
+| 2 | Direção sem MFA | qualquer tela | exige MFA; banco sem permissões |
+| 3 | Recepção Geral | listar clientes | só da Geral |
+| 4 | Profissional | agenda | só a própria, sem telefone/e-mail/observações privadas |
+| 5 | Gerente Geral | gerir vínculo da VIP | recusado |
+| 6 | Direção | alterar o próprio vínculo/perfil | recusado |
+| 7 | Direção | desativar pessoa | corte imediato; login bloqueado |
+| 8 | qualquer | dois atendimentos sobrepostos do mesmo profissional | segundo recusado |
+
+## Critério para "validado"
+
+Só é possível dizer que algo está validado **no ambiente em que foi testado**.
+Segurança e integrações só são declaradas concluídas após validação no ambiente
+correspondente (nível 2 para nuvem; credenciais oficiais para WhatsApp, banco e
+adquirente).

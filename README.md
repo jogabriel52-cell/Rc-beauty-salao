@@ -4,23 +4,30 @@ Este pacote converte o material original do Builder em uma especificação
 coerente para construir o RC Beauty com Claude Code, PostgreSQL/Supabase e uma
 aplicação web própria.
 
-## Estado real do pacote
+## Estado atual
 
-Este é um **kit de construção, não o sistema pronto**. Ele contém arquitetura,
-regras, plano de fases e uma migração inicial de banco para a Fase 1. Ainda não
-contém o frontend completo, o fluxo de convite de usuários, todas as funções
-operacionais, o importador Trinks nem integrações de WhatsApp ou banco. Esses
-itens estão identificados como trabalho de implementação.
+Sistema em construção por fases (`docs/PHASE_PLAN.md`). Situação:
 
-Nenhuma aplicação ou migração foi executada em um projeto Supabase real.
-Portanto, este material não deve ser descrito como "100% seguro" ou "validado
-em produção" até completar a revisão e os testes indicados em
-[`docs/BUILD_AND_VALIDATION.md`](docs/BUILD_AND_VALIDATION.md).
+- **Fase 0 — acessos e segurança: implementada.** Perfis de acesso editáveis,
+  escopo por módulo/ação, exceções individuais, MFA obrigatório para Admin
+  Geral e Direção, convite e desativação por Edge Functions, auditoria de
+  concessões, telas de pessoas, perfis e auditoria.
+- Fases 1 a 4: em andamento/não iniciadas.
 
-O que foi executado até agora: a migração e 70 asserções de RLS e regras de
-negócio passaram em um PostgreSQL 16 puro com um simulador mínimo do Auth do
-Supabase (`scripts/precheck-migrations.sh`), e o bloco de bootstrap foi
-testado no mesmo ambiente. Isso é uma pré-checagem (nível 0), não validação.
+Validação feita até aqui (detalhes em `docs/BUILD_AND_VALIDATION.md`):
+
+- **Preliminar (nível 0)**: PostgreSQL 16 com imitação mínima do Auth — não é
+  validação oficial do Supabase.
+- **Stack local oficial do Supabase (nível 1)**: `supabase db reset`,
+  `supabase test db` (pgTAP) e testes de integração com usuários reais de teste
+  (login, MFA TOTP, convite, desativação) — passando.
+- **Aplicação (nível 3)**: typecheck, lint, testes unitários, build sem segredo
+  e E2E no navegador contra a stack local — passando.
+- **Cloud de desenvolvimento (nível 2)**: **não executado** — falta a
+  referência do projeto Supabase Cloud exclusivo da RC Beauty.
+
+Nada foi publicado, nenhum deploy foi feito e nenhum dado real foi usado. O
+sistema não deve ser descrito como "seguro" ou "validado em produção".
 
 ## Decisões desta revisão
 
@@ -28,10 +35,11 @@ testado no mesmo ambiente. Isso é uma pré-checagem (nível 0), não validaçã
   server-side ficam no Supabase.
 - O frontend proposto é React + TypeScript + Vite. Hospedagem do frontend será
   escolhida depois do primeiro MVP local.
-- O projeto começa com as tabelas e recursos da Fase 1. Não cria tabelas
-  financeiras, WhatsApp ou integrações futuras sem projeto e revisão próprios.
-- Usuários e permissões são administrados por unidade, com papéis-base e
-  exceções individuais. O acesso por unidade é atribuído explicitamente.
+- Cada fase entra com migração própria, telas e testes. Mensagens e integrações
+  bancárias só são ativadas com credenciais oficiais, consentimento e testes.
+- Pessoas e permissões são administradas por unidade, com perfis de acesso
+  editáveis (não cargos fixos no código), escopo por módulo/ação e exceções
+  individuais. O acesso por unidade é atribuído explicitamente.
 - Segurança é aplicada no banco. A interface não é controle de segurança.
 - A chave publicável (`sb_publishable_...`) pode ficar no frontend; a chave
   secreta (`sb_secret_...`) fica somente no servidor. Nunca colocar chave
@@ -39,27 +47,27 @@ testado no mesmo ambiente. Isso é uma pré-checagem (nível 0), não validaçã
 - A importação do Trinks começa por CSV de exportação real, com mapeamento
   conferido. Nenhuma API é presumida.
 
-## Comece nesta ordem
+## Como rodar localmente
 
-1. Leia este README e o [`CLAUDE.md`](CLAUDE.md).
-2. Leia [`docs/SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md),
-   [`docs/ACCESS_CONTROL.md`](docs/ACCESS_CONTROL.md) e
-   [`docs/PHASE_PLAN.md`](docs/PHASE_PLAN.md).
-3. Crie um projeto Git e um projeto Supabase de desenvolvimento, sem dados
-   reais de clientes. Siga [`docs/CLOUD_SETUP.md`](docs/CLOUD_SETUP.md) e não
-   reutilize um banco de outro produto.
-4. Instale a Supabase CLI e use as migrações em `supabase/migrations`. Não
-   execute o SQL antigo do Builder.
-5. Aplique a migração em ambiente local/de teste e revise RLS antes de começar
-   a interface. Comece por `./scripts/precheck-migrations.sh` e depois pela
-   stack local (`supabase start`, `supabase db reset`).
-6. Crie o primeiro usuário administrativo pelo Auth do Supabase e siga o
-   procedimento administrativo em [`supabase/BOOTSTRAP.md`](supabase/BOOTSTRAP.md);
-   o bootstrap é executado somente no SQL Editor como administrador do banco.
-7. Use [`prompts/CLAUDE_CODE_START.md`](prompts/CLAUDE_CODE_START.md) como
-   primeira instrução ao Claude Code.
-8. Só avance para dados reais depois de validar os perfis e a separação
-   RC Beauty Geral × Sala VIP.
+```bash
+supabase start                    # stack local oficial (Docker)
+supabase db reset && supabase test db
+npm install && npm run test:integration
+./scripts/write-local-env.sh
+npm run -w apps/web dev           # http://localhost:5173
+```
+
+Primeiro acesso: criar o Admin Geral pelo Auth e seguir
+[`supabase/BOOTSTRAP.md`](supabase/BOOTSTRAP.md); as demais pessoas são
+convidadas pela tela **Pessoas e acessos**. Na stack local, os e-mails de
+convite aparecem no Mailpit (`http://127.0.0.1:54324`).
+
+Leitura recomendada: [`CLAUDE.md`](CLAUDE.md),
+[`docs/ACCESS_CONTROL.md`](docs/ACCESS_CONTROL.md),
+[`docs/SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md),
+[`docs/PHASE_PLAN.md`](docs/PHASE_PLAN.md) e
+[`docs/CLOUD_SETUP.md`](docs/CLOUD_SETUP.md) (projeto Cloud exclusivo de
+desenvolvimento, sem dados reais).
 
 ## Arquivos
 
@@ -75,10 +83,14 @@ testado no mesmo ambiente. Isso é uma pré-checagem (nível 0), não validaçã
 | `docs/CLOUD_SETUP.md` | Configuração segura do Supabase Cloud de desenvolvimento |
 | `docs/SERVER_FUNCTIONS.md` | Contratos obrigatórios das Edge Functions de convite, desativação e importação |
 | `docs/BUILD_AND_VALIDATION.md` | Níveis de validação e evidências exigidas |
-| `supabase/migrations/` | Migração inicial da Fase 1 |
-| `supabase/tests/` | Testes de RLS e regras (SQL) e simulador do Auth para pré-checagem |
+| `supabase/migrations/` | Migrações por fase |
+| `supabase/functions/` | Edge Functions (convite, ativação/desativação) |
+| `supabase/tests/database/` | Testes pgTAP (`supabase test db`) |
+| `tests/integration/` | Testes com usuários reais na stack local |
+| `tests/legacy/` | Registro dos testes do modelo inicial |
+| `apps/web/` | Aplicação React + TypeScript + Vite, com E2E Playwright |
 | `supabase/BOOTSTRAP.md` | Criação controlada do primeiro Admin Geral |
-| `scripts/precheck-migrations.sh` | Pré-checagem em PostgreSQL descartável |
+| `scripts/precheck-migrations.sh` | Pré-checagem preliminar em PostgreSQL descartável |
 | `prompts/CLAUDE_CODE_START.md` | Pedido inicial pronto para usar no Claude Code |
 | `.env.example` | Variáveis do frontend (somente valores públicos) |
 

@@ -1,99 +1,84 @@
 # Revisão de segurança
 
-Estado em 2026-10-24. Este documento registra o que foi desenhado, o que foi
-verificado e o que falta. Ele **não** atesta que o sistema é seguro: nenhuma
-parte foi executada em um projeto Supabase real e o frontend e as Edge
-Functions ainda não existem.
-
-## Escopo
-
-Migração `supabase/migrations/20261024000000_phase1_core.sql`, procedimento de
-bootstrap e contratos de `docs/SERVER_FUNCTIONS.md`.
+Registro do que foi desenhado, verificado e do que falta. **Não atesta que o
+sistema é seguro**: a validação no projeto Supabase Cloud de desenvolvimento
+(nível 2) ainda não foi feita e nada foi exposto a usuários reais.
 
 ## Ativos e ameaças principais
 
 | Ativo | Ameaça | Controle |
 |---|---|---|
-| Dados de clientes (nome, telefone, e-mail, nascimento, observações) | Leitura por pessoa sem vínculo ou de outra unidade | RLS por `has_permission`; nada para `anon`; testes de isolamento Geral × VIP |
-| Agenda | Alteração indevida, conflito de horários | Permissões separadas para criar, editar e cancelar; restrição de exclusão |
-| Contas e permissões | Autoescalada de privilégio | Escrita em vínculos/exceções só por Admin Geral; `platform_admins` só pelo administrador do banco; GRANTs por coluna |
-| Chave secreta | Vazamento pelo frontend ou repositório | Só em segredos de Edge Functions; regra explícita em `CLAUDE.md` |
-| Auditoria | Apagamento ou falsificação | Gravada só por gatilho `SECURITY DEFINER`; sem GRANT de escrita; `created_by` forçado pelo banco |
-| Ex-funcionário | Acesso após desligamento | `profiles.active` verificado em toda permissão; bloqueio no Auth pela função de desativação |
+| Dados de clientes (identidade, contato, notas de CRM) | Leitura sem vínculo ou de outra unidade | RLS por `permission_scope`; vínculo explícito por unidade; nada para `anon` |
+| Dados da cliente na agenda do profissional | Exposição de telefone, e-mail e notas privadas | Profissional não lê cadastro; agenda própria via função com campos mínimos (Fase 1) |
+| Contas e permissões | Autoescalada, autoconcessão, rebaixamento do Admin Geral | Anti-escalada, autoproteção, proteção do Admin Geral, MFA, auditoria |
+| Chave secreta | Vazamento | Só em Edge Functions, só no cabeçalho `apikey`; lint e verificação do bundle no frontend |
+| Auditoria | Apagamento ou falsificação | Gravada só por gatilho `SECURITY DEFINER`; sem escrita pela API; ator forçado pelo banco |
+| Ex-funcionário | Acesso após desligamento | `profiles.active` verificado em toda permissão (corte imediato) + bloqueio de login |
+| Sessão roubada de diretor | Uso de senha vazada | MFA obrigatório (`aal2`) para Admin Geral e Direção |
 
-## Controles implementados na migração
+## Controles implementados (Fase 0)
 
-- RLS habilitado em todas as 12 tabelas de `public`.
-- `revoke all` de `anon` e `authenticated`, seguido de GRANTs explícitos por
-  tabela e por coluna. Privilégios padrão do schema revogados para objetos
-  futuros criados pela role `postgres`.
-- `execute` de funções revogado de `public`/`anon`; liberado a
-  `authenticated` apenas nas funções necessárias.
-- Funções `SECURITY DEFINER` com `search_path = ''` e nomes qualificados.
-- Sem `DELETE` para a aplicação, exceto em exceções individuais (Admin Geral).
-- `unit_id` imutável; chaves compostas impedem relações entre unidades.
-- `created_by`, `cancelled_by`, `archived_by`, `deactivated_at` preenchidos
-  pelo banco.
-- Último Admin Geral ativo protegido; ninguém se autodesativa.
-- Ator da auditoria: `auth.uid()` sempre prevalece sobre `app.actor_id`, que só
-  é usado quando não há JWT de usuário (funções de servidor).
+- RLS em todas as tabelas de `public`; GRANTs explícitos por tabela e coluna;
+  privilégios padrão revogados para objetos futuros.
+- `execute` de funções revogado de `public`/`anon`; liberado a `authenticated`
+  apenas onde necessário; `admin_find_user_id_by_email` só para `service_role`.
+- Funções `SECURITY DEFINER` com `search_path = ''` (verificado por teste).
+- Perfis de acesso editáveis com escopo; anti-escalada; ninguém altera as
+  próprias permissões; acessos do Admin Geral só por Admin Geral; último Admin
+  Geral protegido; perfil em uso não pode ser desativado.
+- MFA (`aal2`) exigido no banco para perfis marcados e para o Admin Geral.
+- Auditoria de todas as concessões de acesso, inclusive de modelos.
+- Cadastro público desativado; login só por convite; senha mínima de 10
+  caracteres com letras e números (configuração local; replicar no Cloud).
+- Edge Functions sem dependências externas, com CORS por lista, autenticação
+  antes de qualquer processamento e validação estrita do corpo.
 
-## Verificação executada
+## Verificações executadas
 
-| Data | Ambiente | O quê | Resultado |
+Detalhes e histórico em `docs/BUILD_AND_VALIDATION.md`.
+
+| Data | Nível | O quê | Resultado |
 |---|---|---|---|
-| 2026-10-24 | PostgreSQL 16 puro + simulador mínimo do Auth (`supabase/tests/shim/`) | `scripts/precheck-migrations.sh`: aplica a migração e roda `supabase/tests/rls_phase1_test.sql` (70 asserções) | Todas passaram |
-| 2026-10-24 | Mesmo ambiente | Bloco de bootstrap de `supabase/BOOTSTRAP.md`, incluindo recusa na segunda execução | Funcionou como descrito |
-
-Limites dessa verificação: o simulador não reproduz o Supabase real (roles
-internas, `auth.uid()` oficial, PostgREST, configurações do Auth, privilégios
-padrão exatos). É uma pré-checagem, não validação.
+| 2026-10-24 | 0 — **preliminar** (PostgreSQL 16 + imitação do Auth) | Modelo inicial, 70 asserções | Passou. Não é validação oficial do Supabase. |
+| 2026-10-24 | 1 — stack local oficial | Modelo inicial, mesmas 70 asserções | Passou |
+| 2026-10-24 | 1 — stack local oficial | Fase 0: pgTAP 69, integração 20 (Auth real, MFA, funções) | Passou após correção de 7 falhas (listadas em BUILD_AND_VALIDATION) |
+| 2026-10-24 | 3 — aplicação local | E2E 3, build sem segredo | Passou |
 
 ## Não verificado
 
-- Migração na stack local oficial (`supabase start` / `supabase db reset`).
-- Migração no projeto Supabase Cloud de desenvolvimento.
-- Security Advisor e Performance Advisor do painel.
-- Chamadas reais pela Data API com JWTs de cada papel.
-- Edge Functions (não implementadas).
-- Frontend (não implementado).
+- Projeto Supabase Cloud de desenvolvimento (nível 2) e **Security Advisor** —
+  aguardando a referência do projeto Cloud da RC Beauty.
+- Configurações do Auth no Cloud (SMTP próprio, URLs de redirecionamento,
+  proteção contra senha vazada) — dependem do projeto Cloud.
+- Testes de carga/desempenho das políticas com volume realista.
 
 ## Pendências antes de dados reais
 
-Itens em ordem de prioridade. Nenhum dado real de cliente deve entrar antes de
-todos os itens **bloqueantes** estarem concluídos e registrados.
-
-| # | Item | Tipo | Fase |
+| # | Item | Tipo | Situação |
 |---|---|---|---|
-| P1 | Validar migração e testes na stack local e no projeto de desenvolvimento (níveis 1 e 2 de `BUILD_AND_VALIDATION.md`) | Bloqueante | 1 |
-| P2 | Security Advisor sem erros; avisos justificados por escrito | Bloqueante | 1 |
-| P3 | Implementar e testar `admin-invite-user`, `admin-deactivate-user`, `admin-reactivate-user` conforme contrato | Bloqueante | 1 |
-| P4 | Cadastro público desativado, URLs de redirecionamento restritas, SMTP próprio configurado | Bloqueante | 1 |
-| P5 | MFA obrigatório para Admin Geral: fluxo TOTP no frontend e exigência de `aal2` em `is_platform_admin()` (nova migração) | Bloqueante | 1 |
-| P6 | LGPD: base legal, aviso de privacidade aos clientes, política de retenção (inclusive da auditoria, que guarda dados pessoais), procedimento de atendimento a titulares (acesso, correção, anonimização) | Bloqueante | 1 |
-| P7 | Plano de backup e restauração testado; avaliar PITR do plano contratado | Bloqueante | 1 |
-| P8 | Projeto de produção separado do de desenvolvimento, com senhas e chaves próprias | Bloqueante | 1 |
-| P9 | Proteção de senha vazada e política de senha no Auth (conforme plano) | Recomendado | 1 |
-| P10 | Política de CSP e cabeçalhos de segurança na hospedagem do frontend | Recomendado | 1 |
-| P11 | Medir desempenho das políticas com volume realista (funções por linha); ajustar índices | Recomendado | 1 |
-| P12 | Proteção de branch, revisão obrigatória e varredura de segredos no repositório | Recomendado | 0 |
-| P13 | Políticas de Storage antes de qualquer upload (importação usa staging em tabela) | Bloqueante quando usar Storage | 2 |
-| P14 | Revisão própria para importação Trinks, financeiro, WhatsApp e banco | Bloqueante para cada fase | 2–4 |
+| P1 | Validar migrações e testes na stack local oficial | Bloqueante | **Feito** (Fase 0) |
+| P2 | Validar no Cloud de desenvolvimento; Security Advisor sem erros, avisos justificados | Bloqueante | Pendente — falta a referência do projeto |
+| P3 | Funções de convite e desativação conforme contrato | Bloqueante | **Feito** e testado localmente |
+| P4 | Cadastro público desativado, URLs restritas, SMTP próprio no Cloud | Bloqueante | Local feito; Cloud pendente |
+| P5 | MFA obrigatório para Admin Geral e Direção | Bloqueante | **Feito** (banco + tela) |
+| P6 | LGPD: base legal, aviso de privacidade, retenção (inclusive auditoria com dados pessoais), atendimento a titulares | Bloqueante | Pendente — decisão jurídica/negócio |
+| P7 | Backup e restauração testados; PITR conforme plano | Bloqueante | Pendente — depende do projeto Cloud e do plano |
+| P8 | Projeto de produção separado, com chaves próprias | Bloqueante | Fora do escopo atual (não conectar produção) |
+| P9 | Proteção contra senha vazada (conforme plano) | Recomendado | Pendente — Cloud |
+| P10 | CSP e cabeçalhos de segurança na hospedagem | Recomendado | Pendente — hospedagem não escolhida |
+| P11 | Desempenho das políticas com volume realista | Recomendado | Pendente |
+| P12 | Proteção de branch e varredura de segredos no repositório | Recomendado | Pendente — configuração do GitHub |
+
+Pendências das fases 1–4 são acrescentadas nas seções de cada fase.
 
 ## Sobre o SQL original do Builder
 
-O SQL do pacote original foi descartado como fonte de execução porque:
-
-- misturava tabelas das quatro fases num único script;
-- descrevia funções que não existiam no próprio script;
-- tinha políticas insuficientes para separar unidades e papéis.
-
-Ele pode ser mantido apenas como referência histórica, fora de
-`supabase/migrations/`, e nunca deve ser executado nem copiado para um banco
-ativo.
+Descartado como fonte de execução (misturava quatro fases, descrevia funções
+inexistentes, políticas insuficientes). Pode ser mantido apenas como
+referência histórica fora de `supabase/migrations/`.
 
 ## Como reportar um problema de segurança
 
-Registrar em canal privado com o responsável pelo projeto (não em issue
-pública), com passos para reproduzir. Se houver suspeita de vazamento de
-chave: rotacionar a chave no painel imediatamente e depois investigar.
+Canal privado com o responsável pelo projeto, com passos para reproduzir.
+Suspeita de vazamento de chave: revogar a chave no painel imediatamente e
+depois investigar.

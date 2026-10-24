@@ -25,9 +25,30 @@ create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;
 
 create table if not exists auth.users (
-  id     uuid primary key default gen_random_uuid(),
-  email  text unique
+  id               uuid primary key default gen_random_uuid(),
+  email            text unique,
+  invited_at       timestamptz,
+  last_sign_in_at  timestamptz,
+  banned_until     timestamptz
 );
+
+create table if not exists auth.mfa_factors (
+  id       uuid primary key default gen_random_uuid(),
+  user_id  uuid not null references auth.users (id) on delete cascade,
+  status   text not null default 'unverified'
+);
+
+create or replace function auth.jwt()
+returns jsonb
+language sql
+stable
+as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')
+  )::jsonb;
+$$;
+grant execute on function auth.jwt() to anon, authenticated, service_role;
 
 create or replace function auth.uid()
 returns uuid
