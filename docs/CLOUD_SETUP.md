@@ -17,7 +17,7 @@ Supabase e atualize este arquivo.
 | Região | `us-east-1` (a recomendação abaixo era `sa-east-1`; aceitável para desenvolvimento, rever para produção) |
 | PostgreSQL | 17.11 |
 | Estado em 2026-10-24 | Ativo; sem tabelas em `public`, sem migrações registradas, sem Edge Functions; já possui `public.rls_auto_enable()` + event trigger `ensure_rls` (reproduzidos na migração `20261024150000_rls_auto_enable_guard.sql`); `pgtap` disponível, não instalado |
-| Migrações aplicadas | **Nenhuma** (ver "Aplicação pendente") |
+| Migrações aplicadas | **Nenhuma** até 2026-10-24 (conferido de novo, somente leitura) — ver "Aplicação pendente" |
 
 ### Aplicação pendente
 
@@ -31,36 +31,66 @@ O fluxo autorizado é `supabase db push --dry-run`, revisão e depois
    `aws-*-us-east-1.pooler.supabase.com:5432/6543`) não abrem, e o `db push`
    precisa delas.
 
-Para aplicar, uma das opções:
+Não há terminal com acesso ao banco nesta sessão. A aplicação é feita **na
+máquina do responsável** com o roteiro `scripts/cloud-dev-push.sh`.
 
-- **Na máquina do responsável** (recomendado), com a CLI e sem colar senhas em
-  chat:
-  ```bash
-  supabase login
-  supabase link --project-ref biaezsatrxqpopeifkot
-  supabase migration list            # remoto deve estar vazio
-  supabase db push --dry-run         # deve listar exatamente as 7 migrações do repositório
-  supabase db push
-  ```
-- **No ambiente do Claude Code**: configurar `SUPABASE_ACCESS_TOKEN` e
-  `SUPABASE_DB_PASSWORD` como segredos do ambiente e liberar na política de
-  rede os hosts acima (portas 5432/6543); vale para uma sessão nova.
+#### Passo a passo (na sua máquina)
 
-O dry-run esperado lista, nesta ordem:
+Pré-requisitos: Git, Node.js 20+ e acesso à conta Supabase dona do projeto. A
+CLI é baixada pelo próprio roteiro (`npx supabase@2.122.0`, a mesma versão dos
+testes locais). Docker não é necessário. Em Windows, use Git Bash ou WSL.
 
-```
-20261024150000_rls_auto_enable_guard.sql
-20261024150100_phase1_core.sql
-20261024150200_phase0_access_model.sql
-20261024150300_phase1_operations.sql
-20261024150400_phase2_trinks_import.sql
-20261024150500_phase3_finance.sql
-20261024150600_phase4_messaging.sql
+```bash
+git clone https://github.com/jogabriel52-cell/Rc-beauty-salao.git   # ou git pull, se já tiver
+cd Rc-beauty-salao
+git checkout claude/rc-beauty-spec-build-r13mz3
+./scripts/cloud-dev-push.sh
 ```
 
-Na primeira migração, `create or replace` muda apenas o `search_path` da função
-existente de `pg_catalog` para vazio (convenção do projeto; o corpo é o mesmo)
-e o event trigger **não** é recriado, porque já existe.
+O roteiro, nesta ordem:
+
+1. faz `supabase login` se preciso (o token fica só na sua máquina);
+2. `supabase link --project-ref biaezsatrxqpopeifkot` — **a senha do banco é
+   digitada no terminal**, nunca no chat (ou exportada antes no seu shell como
+   `SUPABASE_DB_PASSWORD`);
+3. **para** se o projeto vinculado não for `biaezsatrxqpopeifkot`;
+4. mostra `supabase migration list --linked` (o remoto deve estar vazio);
+5. roda `supabase db push --dry-run --linked` e **para** se a prévia não listar
+   exatamente as migrações de `supabase/migrations/`;
+6. pede que você digite `APLICAR`; só então roda `supabase db push --linked`;
+7. mostra o histórico de migrações depois da aplicação.
+
+Ele nunca executa `db reset`, restore ou drop no projeto remoto e não envia
+dados de teste. As saídas ficam em `$TMPDIR/rc-beauty-cloud-push/` (sem senha).
+Se parar em qualquer etapa, envie a saída exibida (sem senha) para revisão.
+
+Depois do `APLICAR`, avise o Claude Code: a conferência de histórico, tabelas,
+RLS, permissões e Security/Performance Advisor é feita por consulta **somente
+leitura**.
+
+Roteiro testado com uma CLI simulada (prévia correta → pede confirmação;
+prévia diferente → para; ref diferente → para). A execução real ainda não
+aconteceu.
+
+#### Revisão de operações destrutivas
+
+Em um projeto vazio, os `drop`/`delete` das migrações só atingem objetos
+criados pelas próprias migrações anteriores da cadeia:
+
+| Migração | Operação | Motivo |
+|---|---|---|
+| `…150200_phase0_access_model` | `delete from public.permissions`; `drop column role`; `drop table role_permissions`; `drop type app_role`; `drop function my_permissions`; troca de gatilho e de políticas | substitui os papéis fixos do modelo inicial por perfis editáveis |
+| `…150300_phase1_operations` | `drop column` de nome/contato em `client_units`; troca de gatilho, políticas e de `get_my_agenda` | dados de contato passam para `client_identities` |
+| `…150300`, `…150400`, `…150600` | `delete` dentro de corpos de função | executados só quando a função é chamada (descartar prévia de importação, mesclar clientes) |
+
+Nenhuma migração altera o schema `auth`, remove `ensure_rls` ou
+`rls_auto_enable`, ou toca objetos que já existiam no projeto.
+
+#### Alternativa
+
+Executar no ambiente do Claude Code exigiria `SUPABASE_ACCESS_TOKEN` e
+`SUPABASE_DB_PASSWORD` como segredos do ambiente **e** liberação de rede para
+os hosts Postgres acima; não é o caminho escolhido.
 
 ### Auth do projeto de desenvolvimento (fazer no painel)
 

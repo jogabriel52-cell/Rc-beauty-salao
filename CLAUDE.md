@@ -129,6 +129,7 @@ npm run -w apps/web build && npm run -w apps/web check:bundle
 npm run -w apps/web e2e                # Playwright contra a stack local
 npm run -w apps/web build:hosting      # build estático para a Hostinger (usa apps/web/.env.production)
 ./scripts/precheck-migrations.sh       # nível 0 (preliminar, sem Docker)
+./scripts/cloud-dev-push.sh            # máquina do responsável: link + dry-run conferido + push no Cloud dev
 ```
 
 Após editar Edge Functions, reinicie o container `supabase_edge_runtime_*` se a

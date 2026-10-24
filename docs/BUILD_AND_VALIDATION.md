@@ -92,6 +92,7 @@ supabase db push
 | 2026-10-24 | 1 | Stack local oficial | Migrações renumeradas + guarda `ensure_rls` + PARAR sem cadastro | `supabase db reset` ok; `supabase test db`: 350/350 (72 + 99 + 38 + 58 + 83); guarda reaplicada 2× sem duplicar o gatilho; integração: 39/39 |
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | idem + build de hospedagem | typecheck, lint, 19 unitários, build, bundle sem segredo, E2E 13/13; `build:hosting` com o projeto de desenvolvimento (só URL + chave publicável) e teste do `dist/` com fallback de rotas e a CSP do `.htaccess`: sem erros |
 | 2026-10-24 | 2 (somente leitura) | Cloud dev `biaezsatrxqpopeifkot` | — | Alvo confirmado pelo ref; vazio (sem tabelas, sem migrações, sem funções); `ensure_rls`/`rls_auto_enable` inspecionados. **Nenhuma migração aplicada**: `db push --dry-run` não pôde rodar (sem `SUPABASE_ACCESS_TOKEN`/`SUPABASE_DB_PASSWORD` e sem rede Postgres no ambiente) |
+| 2026-10-24 | — | Ambiente do Claude Code | `scripts/cloud-dev-push.sh` | Sem terminal com acesso Postgres ao Cloud; roteiro para a máquina do responsável testado com CLI simulada (prévia correta pede confirmação; prévia diferente e ref diferente param). Cloud reconferido: vazio |
 | — | — | Graph API (Meta) e Messages API (Anthropic) | Fase 4 | **Não executado**: sem credenciais oficiais nem chave da IA |
 | — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
 
