@@ -1,0 +1,30 @@
+# Segredos e ambientes locais
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase CLI
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Node / frontend
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Dados reais nunca entram no repositório
+*.csv
+!supabase/tests/fixtures/*.csv
+*.dump
+*.sql.gz
+exports/
+
+# Editores e sistema
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
