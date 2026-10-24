@@ -26,7 +26,7 @@ export function ClientsPage() {
     const t = term.trim();
     if (t) {
       const digits = t.replace(/\D/g, "");
-      q = q.or(digits.length >= 4 ? `phone.ilike.*${digits}*` : `full_name.ilike.*${t.replace(/[,()*]/g, "")}*`,
+      q = q.or(/^[\d\s()+.-]+$/.test(t) && digits.length >= 4 ? `phone.ilike.*${digits}*` : `full_name.ilike.*${t.replace(/[,()*]/g, "")}*`,
         { referencedTable: "client_identities" });
     }
     return unwrap(await q) as unknown as ClientRow[];

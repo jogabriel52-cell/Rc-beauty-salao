@@ -85,7 +85,20 @@ comandas e estoque com regras no banco; movimentos e CRM somente inclusão.
 | P15 | Conflito de horário do mesmo profissional entre unidades não é detectado | Recomendado | Pendente |
 | P16 | Retenção e anonimização de clientes inativas (direito de eliminação) | Bloqueante (LGPD) | Pendente — política a definir |
 
-Pendências das fases 2–4 são acrescentadas nas seções de cada fase.
+### Fase 2
+
+Controles: arquivo lido no navegador (só campos mapeados chegam ao banco);
+mapeamento com dupla conferência; funções `import_*` verificam `imports.run`;
+prévia sem gravar em clientes; nenhuma mescla automática; reimportação do mesmo
+arquivo bloqueada; linhas de prévia apagadas no descarte e expurgáveis.
+
+| # | Item | Tipo | Situação |
+|---|---|---|---|
+| P17 | Conferir mapeamento com exportação real do Trinks (sem versionar o arquivo) | Bloqueante para importar dados reais | Pendente — depende do arquivo |
+| P18 | Definir prazo de retenção das linhas de prévia e agendar o expurgo | Recomendado (LGPD) | Função pronta; agendamento pendente |
+| P19 | Dados reais só podem ser importados no ambiente aprovado para dados reais (não no Cloud de desenvolvimento) | Bloqueante | Regra registrada |
+
+Pendências das fases 3–4 são acrescentadas nas seções de cada fase.
 
 ## Sobre o SQL original do Builder
 

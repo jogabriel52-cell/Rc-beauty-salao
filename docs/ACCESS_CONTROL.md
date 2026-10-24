@@ -153,6 +153,7 @@ Valores iniciais; a direção pode alterá-los em Perfis de acesso.
 | `stock.view` / `stock.manage` | U / U | U / U | U / U | | U / – | | U / – |
 | `dashboard.view` — painel | U | U | U | | U | | U |
 | `reports.view` — relatórios | U | U | U | | | | U |
+| `imports.run` — importação Trinks | U | U | | | | | |
 
 Escopo **P** (próprio):
 
@@ -174,4 +175,6 @@ Escopo **P** (próprio):
 A edição de nome/contato por uma unidade vale para as demais unidades
 vinculadas (é a mesma identidade) e fica registrada na auditoria.
 
-As permissões financeiras e de mensagens são acrescentadas nas fases 3 e 4.
+Importação: o mapeamento de colunas precisa ser aprovado por pessoa diferente
+de quem o editou por último (conferência). As permissões financeiras e de
+mensagens são acrescentadas nas fases 3 e 4.

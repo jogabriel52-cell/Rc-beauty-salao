@@ -62,6 +62,8 @@ supabase db push
 | `supabase/tests/database/020_operations.test.sql` | pgTAP | identidade única + vínculo por unidade, busca mascarada entre unidades, vínculo com prova de telefone/e-mail, CRM por unidade e somente inclusão, duplicidades e mescla, profissional sem acesso a cadastro/CRM e agenda própria com dados mínimos, agenda (conflito, transições, cancelamento, exceções), comandas (numeração, quem abriu/vendeu/finalizou, totais, pagamentos, finalização, cancelamento com estorno), estoque, painel, relatórios, usuário inativo, MFA. Inclui as verificações equivalentes às 70 do modelo inicial |
 | `tests/integration/phase1-operations.test.ts` | Integração | isolamento de clientes pela API, vínculo entre unidades mascarado, agenda do profissional sem telefone, comanda completa com baixa de estoque, escopo próprio da vendedora |
 | `apps/web/e2e/phase1-operations.spec.ts` | E2E | Recepção agenda nova cliente, confirma, abre e finaliza comanda; Profissional vê só a própria agenda; VIP vincula cadastro mascarado; Gerente mescla duplicidade; Gerente cadastra serviço/produto, lança estoque, vê painel e relatórios |
+| `supabase/tests/database/030_trinks_import.test.sql` | pgTAP | mapeamento só por quem tem `imports.run`, aprovação por outra pessoa, prévia e classificação (nova, vincular, possível duplicidade, já existe, repetida, inválida), problemas de campo, decisões, confirmação com origem/código, observação → CRM, vínculo sem duplicar identidade, bloqueio de reimportação, descarte com expurgo, edição volta a rascunho |
+| `apps/web/e2e/phase2-import.spec.ts` | E2E | mapeamento a partir do arquivo, aprovação por outra pessoa, prévia, decisão de possível duplicidade, confirmação, nota de CRM, bloqueio de reimportação |
 | `apps/web/src/**/*.test.ts` | Unitário | formatação, telefone, dinheiro, mensagens de erro, cálculo de permissões efetivas |
 | `tests/legacy/rls_phase1_baseline_test.sql` | SQL (histórico) | 70 asserções do modelo inicial (papéis fixos), preservadas como registro |
 
@@ -75,6 +77,8 @@ supabase db push
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium (Playwright 1.63) | Fase 0 | typecheck, lint, 12 unitários, build, bundle sem segredo, E2E 3/3 |
 | 2026-10-24 | 1 | Stack local oficial | Fase 1 | `supabase db reset` ok; `supabase test db`: 168/168 (69 + 99); integração: 26/26 |
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 1 | typecheck, lint, 12 unitários, build sem aviso de tamanho, bundle sem segredo, E2E 7/7 |
+| 2026-10-24 | 1 | Stack local oficial | Fase 2 | `supabase test db`: 206/206 (69 + 99 + 38); integração: 26/26 |
+| 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 2 | typecheck, lint, 17 unitários (inclui leitura de CSV UTF-8/Windows-1252), build, bundle sem segredo, E2E 8/8 |
 | — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
 
 ### Falhas encontradas e corrigidas na Fase 0
@@ -99,6 +103,17 @@ supabase db push
 | Produto escolhido por posição na lista pegava produto de outra execução | E2E | nomes únicos por execução e seleção pelo nome |
 | Segunda página E2E navegava antes de o login concluir | E2E | `login()` aguarda sair de `/entrar` |
 | Pacote principal de 524 KB | build | rotas sob demanda e pacotes de terceiros separados |
+
+### Falhas encontradas e corrigidas na Fase 2
+
+| Falha | Como foi achada | Correção |
+|---|---|---|
+| `text[] || 'literal'` ambíguo na classificação | pgTAP | `array_append` |
+| Resumo do lote vazava contagens sem checar permissão | revisão | função com verificação explícita |
+| Parâmetro `undefined` omitido fazia o PostgREST não achar a função de salvar mapeamento | E2E | enviar `null` |
+| Busca de clientes tratava como telefone nomes com 4+ dígitos | E2E | telefone só quando o termo é numérico |
+| Mensagens do banco com "á" eram trocadas por mensagem genérica | E2E | detector de português ampliado + teste unitário |
+| Navegação logo após o MFA às vezes voltava à tela de MFA nos testes | E2E | helper aguarda a conclusão do MFA |
 
 ## Roteiro manual no Cloud de desenvolvimento (nível 2)
 

@@ -63,6 +63,6 @@ atualiza a documentação. Situação atual de cada fase no fim deste arquivo.
 |---|---|---|
 | 0 | Implementada | Stack local oficial: pgTAP, integração com usuários reais, E2E. Cloud de desenvolvimento: **pendente** (referência do projeto não informada). |
 | 1 | Implementada | Stack local oficial: pgTAP, integração com usuários reais, E2E. Cloud: pendente. |
-| 2 | Não iniciada | — |
+| 2 | Implementada (formato real do Trinks a conferir) | Stack local oficial: pgTAP, E2E com CSV fictício. Cloud: pendente. |
 | 3 | Não iniciada | — |
 | 4 | Não iniciada | — |

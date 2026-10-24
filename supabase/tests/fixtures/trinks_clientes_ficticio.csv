@@ -1,0 +1,6 @@
+Código;Cliente;Celular;E-mail;Nascimento;Observação
+F-001;Amanda Ficticia;(11) 90000-0101;amanda.ficticia@teste.invalid;05/03/1991;Prefere atendimento pela manhã
+F-002;Bruna Exemplo;11 90000-0102;;12/07/1985;
+F-003;Camila Teste;(21) 90000-0103;camila@teste.invalid;31/02/1990;Data inválida de propósito
+F-004;;(11) 90000-0104;;;Linha sem nome
+F-005;Amanda Ficticia;(11) 90000-0101;;;Repetida no arquivo

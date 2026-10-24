@@ -16,7 +16,11 @@ Sistema em construção por fases (`docs/PHASE_PLAN.md`). Situação:
   vínculo por unidade, CRM por unidade, revisão de duplicidades, serviços,
   profissionais, agenda (profissional vê só a própria), comandas com quem
   abriu/vendeu/finalizou, estoque, painel e relatórios.
-- Fases 2 a 4: em andamento/não iniciadas.
+- **Fase 2 — importação do Trinks: implementada.** CSV lido no navegador,
+  mapeamento conferido por outra pessoa, prévia com deduplicação e decisão
+  humana antes de gravar. O formato real da exportação ainda precisa ser
+  conferido com um arquivo do Trinks.
+- Fases 3 e 4: em andamento/não iniciadas.
 
 Validação feita até aqui (detalhes em `docs/BUILD_AND_VALIDATION.md`):
 

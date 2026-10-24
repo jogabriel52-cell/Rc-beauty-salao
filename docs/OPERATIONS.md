@@ -103,6 +103,13 @@ agendado ──► confirmado ──► concluido
   serviços por profissional, formas de pagamento, por dia, itens vendidos,
   atendimentos por profissional.
 
+## Importação do Trinks
+
+Ver `docs/INTEGRATIONS.md`. Resumo: mapeamento conferido por outra pessoa;
+prévia com classificação; decisão obrigatória nas possíveis duplicidades;
+confirmação grava; mesmo arquivo não é importado duas vezes na unidade.
+Rotina mensal do administrador do banco: `select public.import_purge_staging(30);`.
+
 ## Rotinas administrativas
 
 ### Entrada de pessoa

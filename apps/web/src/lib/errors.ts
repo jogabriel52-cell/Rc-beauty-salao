@@ -19,7 +19,7 @@ const known: Record<string, string> = {
 // Mensagens de regra de negócio escritas em português pelo próprio banco
 // (RAISE EXCEPTION) são exibidas como estão.
 function isPortugueseBusinessMessage(msg: string): boolean {
-  return /[ãçéêíóôõú]|não|Não|permissão|Ninguém|obrigatório|inválid/.test(msg) && !/violates|duplicate key/.test(msg);
+  return /[áàâãçéêíóôõú]|não|Não|permissão|Ninguém|obrigatório|inválid/i.test(msg) && !/violates|duplicate key/.test(msg);
 }
 
 export function errorMessage(err: unknown): string {

@@ -5,48 +5,63 @@ se sabe, o que não se presume e o que precisa existir antes de cada uma.
 
 | Integração | Status | Fase |
 |---|---|---|
-| Trinks (migração de dados) | Não implementada — planejada por CSV | 2 |
-| E-mail transacional (convites) | Configuração do SMTP no Supabase Auth | 1 |
-| WhatsApp | Não implementada — sem provedor escolhido | 4 |
-| Banco / conciliação | Não implementada — sem desenho | 4 |
+| Trinks (migração de clientes por CSV) | **Implementada e testada na stack local** com arquivo fictício; formato real ainda não conferido | 2 |
+| E-mail transacional (convites) | Funciona na stack local (Mailpit); SMTP próprio no Cloud pendente | 0 |
+| WhatsApp | Não implementada | 4 |
+| Banco / adquirente | Não implementada | 3–4 |
 
 ## Trinks
 
 ### O que se presume
 
-Nada além de que é possível exportar dados em planilha/CSV pelo próprio
-Trinks. **Nenhuma API é presumida.** Se uma API oficial for confirmada no
-futuro, com documentação e contrato, ela será avaliada como alternativa.
+Nada além de que é possível exportar clientes do Trinks em CSV. **Nenhuma API
+é presumida** e **nenhum nome de coluna está fixado no código**.
 
-### Processo
+### Como funciona (tela Importação Trinks, permissão `imports.run`)
 
-1. Gerar uma exportação real de clientes no Trinks.
-2. Analisar a exportação **sem versionar o arquivo** e sem colá-la em issues,
-   prompts ou logs. Registrar apenas os nomes das colunas, a codificação
-   (UTF-8 ou Windows-1252), o separador (`,` ou `;`) e os formatos de data e
-   telefone.
-3. Escrever o mapa de colunas em `docs/TRINKS_MAPPING.md` (a criar),
-   indicando para cada coluna: campo de destino, transformação, obrigatoriedade
-   e o que fazer com valores inválidos. Aprovar o mapa com a gestão do salão.
-4. Gerar um arquivo de teste **fictício** com o mesmo cabeçalho para os testes
-   automatizados.
-5. Implementar a função de importação conforme `SERVER_FUNCTIONS.md`.
-6. Importar primeiro no projeto de desenvolvimento com o arquivo fictício;
-   depois, com o arquivo real, somente no ambiente aprovado para dados reais.
+1. **Mapeamento**: a partir de uma exportação real, a pessoa escolhe qual
+   cabeçalho corresponde a cada campo (nome — obrigatório —, telefone, e-mail,
+   nascimento, código no Trinks, observações) e o formato das datas. A tela
+   mostra as 3 primeiras linhas para conferência. O mapeamento é salvo como
+   **rascunho**.
+2. **Conferência**: **outra pessoa** com permissão de importação aprova o
+   mapeamento. Editar um mapeamento aprovado o devolve para rascunho.
+3. **Leitura no navegador**: o arquivo (até 5 MB e 20 000 linhas) é lido no
+   navegador, com detecção de codificação (UTF-8 ou Windows-1252) e de separador
+   (`;`, `,`, tabulação, `|`). Só os campos mapeados são enviados; o arquivo
+   bruto não sai do computador. É calculado o SHA-256 do arquivo.
+4. **Prévia** (nada é gravado em clientes): o banco normaliza telefone e datas,
+   valida e-mail e classifica cada linha:
 
-### Regras da importação
+   | Classificação | Sugestão | Pode mudar? |
+   |---|---|---|
+   | Nova | Criar | Criar ou ignorar |
+   | Vincular (mesmo telefone/e-mail e mesmo primeiro nome de cadastro de outra unidade) | Vincular | Vincular, criar ou ignorar |
+   | Possível duplicidade (mesmo telefone/e-mail com nome diferente, ou mesmo nome nesta unidade) | **Sem sugestão — decisão obrigatória** | Criar, vincular (se houver cadastro de outra unidade) ou ignorar |
+   | Já existe nesta unidade (mesmo código do Trinks, telefone ou e-mail) | Ignorar | Não |
+   | Repetida no arquivo | Ignorar | Não |
+   | Inválida (sem nome) | Ignorar | Não |
 
-- Unidade de destino escolhida explicitamente em cada lote. Um lote nunca
-  grava em duas unidades.
-- Prévia obrigatória antes de gravar: total de linhas, válidas, inválidas
-  (com motivo), possíveis duplicadas.
-- Identificador do Trinks, se existir na exportação, vai para
-  `clients.external_ref` com `source = 'trinks_csv'`; reimportar o mesmo arquivo
-  não duplica clientes.
-- Possível duplicado com cadastro manual (mesmo telefone) não é mesclado
-  automaticamente: fica para revisão.
-- Histórico de atendimentos só será importado se a exportação o contiver e
-  houver mapa aprovado para profissionais e serviços.
+   Problemas de campo (telefone, e-mail ou data inválidos) ficam registrados na
+   linha e o campo é descartado.
+5. **Confirmação**: só com todas as linhas recebidas e decididas. Cria
+   identidades e vínculos com origem `trinks_csv` e o código do Trinks; vincular
+   reaproveita a identidade e só completa campos vazios; observações viram nota
+   privada de CRM. O mesmo arquivo (mesmo SHA-256) não pode ser confirmado duas
+   vezes na mesma unidade.
+6. **Descarte** apaga as linhas da prévia. Linhas de lotes encerrados podem ser
+   expurgadas pelo administrador do banco (`select public.import_purge_staging(30);`).
+
+### Pendências da importação
+
+- **Conferir o formato real**: gerar uma exportação de clientes no Trinks, criar
+  o mapeamento com ela (sem versionar o arquivo) e pedir a conferência de outra
+  pessoa. O arquivo `supabase/tests/fixtures/trinks_clientes_ficticio.csv` é
+  fictício e serve só aos testes.
+- **Histórico de atendimentos/vendas** do Trinks: não importado. Exige
+  exportação correspondente e mapa próprio de profissionais e serviços.
+- Agendar o expurgo periódico das linhas de prévia (ex.: `pg_cron`) ou executar
+  manualmente na rotina mensal.
 
 ## WhatsApp (Fase 4)
 

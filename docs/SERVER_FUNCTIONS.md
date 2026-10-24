@@ -8,6 +8,11 @@ este arquivo e os testes no mesmo commit.
 | `admin-invite-user` | 0 | Implementada; testada na stack local |
 | `admin-set-user-status` | 0 | Implementada; testada na stack local |
 
+A importação do Trinks (Fase 2) **não usa Edge Function**: o CSV é lido no
+navegador e o banco valida, classifica e grava por funções `SECURITY DEFINER`
+que verificam `imports.run` do chamador (`import_*`). Assim nenhuma chave
+secreta é necessária e a auditoria registra o ator real.
+
 Funções das fases seguintes são acrescentadas a esta tabela quando
 implementadas.
 

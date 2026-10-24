@@ -50,3 +50,10 @@ describe("mensagens de erro", () => {
       .toBe("Ninguém pode alterar as próprias permissões");
   });
 });
+
+describe("mensagens de regra com acento agudo", () => {
+  it("preserva mensagem do banco em português", () => {
+    expect(errorMessage({ code: "23505", message: "Este arquivo já foi importado nesta unidade" }))
+      .toBe("Este arquivo já foi importado nesta unidade");
+  });
+});

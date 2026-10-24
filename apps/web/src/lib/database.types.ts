@@ -225,6 +225,84 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"import_batches": {
+                  Row: {
+                    "confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"created_by": string | null,"file_name": string,"file_sha256": string,"id": string,"mapping_id": string,"row_count": number,"status": string,"summary": Json | null,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"file_name": string,"file_sha256": string,"id"?: string,"mapping_id": string,"row_count": number,"status"?: string,"summary"?: Json | null,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"file_name"?: string,"file_sha256"?: string,"id"?: string,"mapping_id"?: string,"row_count"?: number,"status"?: string,"summary"?: Json | null,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_batches_mapping_id_fkey"
+      columns: ["mapping_id"]
+isOneToOne: false
+      referencedRelation: "import_mappings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "import_batches_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"import_mappings": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"columns": NonNullable<Json>,"created_at": string,"created_by": string | null,"date_format": string,"entity": string,"id": string,"last_edited_by": string | null,"name": string,"source_headers": (string)[],"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"columns": NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"date_format"?: string,"entity"?: string,"id"?: string,"last_edited_by"?: string | null,"name": string,"source_headers"?: (string)[],"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"columns"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"date_format"?: string,"entity"?: string,"id"?: string,"last_edited_by"?: string | null,"name"?: string,"source_headers"?: (string)[],"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"import_rows": {
+                  Row: {
+                    "batch_id": string,"birth_date": string | null,"classification": string,"created_at": string,"decided_by": string | null,"decision": string | null,"email": string | null,"external_ref": string | null,"full_name": string | null,"id": string,"issues": (string)[],"match_client_unit_id": string | null,"match_hint": string | null,"match_identity_id": string | null,"notes": string | null,"phone": string | null,"phone_raw": string | null,"result_client_unit_id": string | null,"row_number": number,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "batch_id": string,"birth_date"?: string | null,"classification": string,"created_at"?: string,"decided_by"?: string | null,"decision"?: string | null,"email"?: string | null,"external_ref"?: string | null,"full_name"?: string | null,"id"?: string,"issues"?: (string)[],"match_client_unit_id"?: string | null,"match_hint"?: string | null,"match_identity_id"?: string | null,"notes"?: string | null,"phone"?: string | null,"phone_raw"?: string | null,"result_client_unit_id"?: string | null,"row_number": number,"unit_id": string
+                  }
+                  Update: {
+                    "batch_id"?: string,"birth_date"?: string | null,"classification"?: string,"created_at"?: string,"decided_by"?: string | null,"decision"?: string | null,"email"?: string | null,"external_ref"?: string | null,"full_name"?: string | null,"id"?: string,"issues"?: (string)[],"match_client_unit_id"?: string | null,"match_hint"?: string | null,"match_identity_id"?: string | null,"notes"?: string | null,"phone"?: string | null,"phone_raw"?: string | null,"result_client_unit_id"?: string | null,"row_number"?: number,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_rows_batch_id_unit_id_fkey"
+      columns: ["batch_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "import_rows_match_client_unit_id_fkey"
+      columns: ["match_client_unit_id"]
+isOneToOne: false
+      referencedRelation: "client_units"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "import_rows_match_identity_id_fkey"
+      columns: ["match_identity_id"]
+isOneToOne: false
+      referencedRelation: "client_identities"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "import_rows_result_client_unit_id_fkey"
+      columns: ["result_client_unit_id"]
+isOneToOne: false
+      referencedRelation: "client_units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"membership_permission_overrides": {
                   Row: {
                     "created_at": string,"created_by": string | null,"effect": Database["public"]['Enums']["permission_effect"],"membership_id": string,"permission_code": string,"reason": string,"scope": Database["public"]['Enums']["access_scope"] | null
@@ -626,6 +704,9 @@ isOneToOne: false
 "apply_sale_stock":
 { Args: { "p_sale_id": string,"p_sign": number }; Returns: undefined
                            },
+"can_import_any_unit":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "can_manage_access":
 { Args: { "p_unit_id": string }; Returns: boolean
                            },
@@ -680,6 +761,33 @@ isOneToOne: false
 "has_unit_scope":
 { Args: { "p_permission": string,"p_unit_id": string }; Returns: boolean
                            },
+"import_approve_mapping":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"import_batch_summary":
+{ Args: { "p_batch_id": string }; Returns: Json
+                           },
+"import_commit_batch":
+{ Args: { "p_batch_id": string }; Returns: Json
+                           },
+"import_create_batch":
+{ Args: { "p_file_name": string,"p_file_sha256": string,"p_mapping_id": string,"p_row_count": number,"p_unit_id": string }; Returns: string
+                           },
+"import_decide_row":
+{ Args: { "p_decision": string,"p_row_id": string }; Returns: undefined
+                           },
+"import_discard_batch":
+{ Args: { "p_batch_id": string }; Returns: undefined
+                           },
+"import_purge_staging":
+{ Args: { "p_days"?: number }; Returns: number
+                           },
+"import_save_mapping":
+{ Args: { "p_columns": Json,"p_date_format": string,"p_id": string,"p_name": string,"p_source_headers": (string)[] }; Returns: string
+                           },
+"import_stage_rows":
+{ Args: { "p_batch_id": string,"p_rows": Json }; Returns: number
+                           },
 "is_active_unit_member":
 { Args: { "p_unit_id": string,"p_user_id": string }; Returns: boolean
                            },
@@ -729,6 +837,9 @@ isOneToOne: false
                            },
 "operational_dashboard":
 { Args: { "p_date"?: string,"p_unit_id": string }; Returns: Json
+                           },
+"parse_import_date":
+{ Args: { "p_format": string,"p_value": string }; Returns: string
                            },
 "permission_scope":
 { Args: { "p_permission": string,"p_unit_id": string }; Returns: Database["public"]['Enums']["access_scope"]

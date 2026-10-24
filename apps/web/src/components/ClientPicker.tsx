@@ -17,7 +17,7 @@ export function ClientPicker({ unitId, value, onChange, label = "Cliente" }:
     }
     const handle = setTimeout(async () => {
       const digits = t.replace(/\D/g, "");
-      const filter = digits.length >= 4 ? `phone.ilike.*${digits}*` : `full_name.ilike.*${t.replace(/[,()*]/g, "")}*`;
+      const filter = /^[\d\s()+.-]+$/.test(t) && digits.length >= 4 ? `phone.ilike.*${digits}*` : `full_name.ilike.*${t.replace(/[,()*]/g, "")}*`;
       const { data } = await supabase.from("client_units").select(CLIENT_SELECT)
         .eq("unit_id", unitId).is("archived_at", null)
         .or(filter, { referencedTable: "client_identities" })

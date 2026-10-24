@@ -20,6 +20,7 @@ export async function completeMfaEnrollment(page: Page): Promise<string> {
   const secret = (await page.getByTestId("mfa-secret").textContent())!.trim();
   await page.getByLabel("Código").fill(totp(secret));
   await page.getByRole("button", { name: "Verificar" }).click();
+  await expect(page.getByRole("heading", { name: "Verificação em duas etapas" })).toHaveCount(0);
   return secret;
 }
 

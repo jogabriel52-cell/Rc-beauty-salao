@@ -24,6 +24,7 @@ export const NAV: NavItem[] = [
   { to: "/relatorios", label: "Relatórios", section: "Gestão", visible: any("reports.view") },
   { to: "/servicos", label: "Serviços", section: "Cadastros", visible: any("services.view") },
   { to: "/profissionais", label: "Profissionais", section: "Cadastros", visible: any("professionals.view") },
+  { to: "/importacao", label: "Importação Trinks", section: "Administração", visible: any("imports.run") },
   { to: "/configuracoes/pessoas", label: "Pessoas e acessos", section: "Administração",
     visible: (_u, a) => a.is_platform_admin || a.units.some((x) => can(x, "access.manage")) },
   { to: "/configuracoes/perfis", label: "Perfis de acesso", section: "Administração",
