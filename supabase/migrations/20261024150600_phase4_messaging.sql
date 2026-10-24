@@ -200,6 +200,9 @@ create table public.conversations (
   status           text not null default 'aberta' check (status in ('aberta', 'encerrada')),
   last_inbound_at  timestamptz,
   last_message_at  timestamptz,
+  -- PARAR/SAIR recebido deste número, com ou sem cadastro (todas as finalidades).
+  -- Gravado só pelo servidor; volta a valer envio apenas com opt-in posterior.
+  opted_out_at     timestamptz,
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   unique (id, unit_id),
@@ -321,6 +324,15 @@ begin
   if c.client_unit_id is not null and public.consent_status(c.client_unit_id, v_purpose) = 'opt_out' then
     raise exception 'Cliente pediu para não receber mensagens desta finalidade (opt-out)' using errcode = '23514';
   end if;
+  -- PARAR recebido do número (inclusive antes de existir cadastro): bloqueia
+  -- até haver opt-in registrado depois dele.
+  if c.opted_out_at is not null
+     and (c.client_unit_id is null
+          or not exists (select 1 from public.consent_events e
+                         where e.client_unit_id = c.client_unit_id and e.purpose = v_purpose
+                           and e.action = 'opt_in' and e.occurred_at > c.opted_out_at)) then
+    raise exception 'Contato pediu para não receber mensagens (opt-out por PARAR)' using errcode = '23514';
+  end if;
   if (v_purpose = 'marketing' or not v_in_window)
      and (c.client_unit_id is null or public.consent_status(c.client_unit_id, v_purpose) <> 'opt_in') then
     raise exception 'Sem consentimento registrado (opt-in) para esta finalidade' using errcode = '23514';
@@ -441,11 +453,17 @@ begin
       if not found then continue; end if;
       v_inserted := v_inserted + 1;
 
-      -- Opt-out por palavra-chave.
-      if v_client is not null and upper(btrim(v_body)) in ('PARAR', 'SAIR', 'STOP', 'CANCELAR', 'DESCADASTRAR') then
-        insert into public.consent_events (unit_id, client_unit_id, purpose, action, source, evidence)
-        values (v_channel.unit_id, v_client, 'marketing', 'opt_out', 'palavra_chave', 'Mensagem: ' || left(v_body, 50)),
-               (v_channel.unit_id, v_client, 'atendimento', 'opt_out', 'palavra_chave', 'Mensagem: ' || left(v_body, 50));
+      -- Opt-out por palavra-chave: vale para o número mesmo sem cadastro
+      -- (conversations.opted_out_at) e, havendo cliente vinculada, também
+      -- como evento de consentimento das duas finalidades.
+      if upper(btrim(v_body)) in ('PARAR', 'SAIR', 'STOP', 'CANCELAR', 'DESCADASTRAR') then
+        update public.conversations set opted_out_at = now() where id = v_conv;
+        select client_unit_id into v_client from public.conversations where id = v_conv;
+        if v_client is not null then
+          insert into public.consent_events (unit_id, client_unit_id, purpose, action, source, evidence)
+          values (v_channel.unit_id, v_client, 'marketing', 'opt_out', 'palavra_chave', 'Mensagem: ' || left(v_body, 50)),
+                 (v_channel.unit_id, v_client, 'atendimento', 'opt_out', 'palavra_chave', 'Mensagem: ' || left(v_body, 50));
+        end if;
         v_optouts := v_optouts + 1;
       end if;
     end loop;
@@ -792,6 +810,38 @@ begin
 end;
 $$;
 
+-- Quando uma conversa com PARAR registrado passa a ter cliente vinculada
+-- (cadastro posterior, vínculo manual, mescla), o opt-out do número vira
+-- evento de consentimento da cliente, com a data original.
+create or replace function public.tg_conversations_optout_to_client()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  p text;
+begin
+  if new.opted_out_at is null or new.client_unit_id is null
+     or (tg_op = 'UPDATE' and new.client_unit_id is not distinct from old.client_unit_id) then
+    return null;
+  end if;
+  foreach p in array array['atendimento', 'marketing'] loop
+    if not exists (select 1 from public.consent_events e
+                   where e.client_unit_id = new.client_unit_id and e.purpose = p
+                     and e.occurred_at >= new.opted_out_at) then
+      insert into public.consent_events (unit_id, client_unit_id, purpose, action, source, evidence, occurred_at)
+      values (new.unit_id, new.client_unit_id, p, 'opt_out', 'palavra_chave',
+              'PARAR recebido do número antes do vínculo com o cadastro', new.opted_out_at);
+    end if;
+  end loop;
+  return null;
+end;
+$$;
+
+create trigger conversations_optout_to_client after insert or update of client_unit_id on public.conversations
+  for each row execute function public.tg_conversations_optout_to_client();
+
 -- -----------------------------------------------------------------------------
 -- 5. Gatilhos padrão, RLS e privilégios
 -- -----------------------------------------------------------------------------
@@ -901,7 +951,7 @@ grant insert (unit_id, survey_id, client_unit_id, appointment_id, score, comment
 
 revoke execute on all functions in schema public from public, anon;
 revoke execute on function public.tg_messaging_channels_guard(), public.tg_messages_guard(), public.tg_followups_guard(),
-  public.tg_consent_events_guard(),
+  public.tg_consent_events_guard(), public.tg_conversations_optout_to_client(),
   public.messaging_mark_result(uuid, text, text), public.messaging_mark_channel(text, text), public.whatsapp_ingest(jsonb),
   public.sdr_save_draft(uuid, text, uuid)
 from authenticated;

@@ -27,9 +27,18 @@
 
 | Arquivo | Conteúdo |
 |---|---|
-| `20261024000000_phase1_core.sql` | Modelo inicial (unidades, perfis, auditoria, agenda básica). Mantido como histórico; evoluído pelas seguintes. |
-| `20261025000000_phase0_access_model.sql` | Perfis de acesso editáveis, escopo, exceções, MFA, anti-escalada, autoproteção. |
-| `20261026000000_phase1_operations.sql` | Clientes (identidade + vínculo), CRM, duplicidades, agenda, comandas, estoque, painel, relatórios. |
+| `20261024150000_rls_auto_enable_guard.sql` | Reproduz a proteção do Cloud: `public.rls_auto_enable()` + event trigger `ensure_rls` (RLS automático em tabelas novas de `public`), idempotente, executável só por `postgres`. |
+| `20261024150100_phase1_core.sql` | Modelo inicial (unidades, perfis, auditoria, agenda básica). Mantido como histórico; evoluído pelas seguintes. |
+| `20261024150200_phase0_access_model.sql` | Perfis de acesso editáveis, escopo, exceções, MFA, anti-escalada, autoproteção. |
+| `20261024150300_phase1_operations.sql` | Clientes (identidade + vínculo), CRM, duplicidades, agenda, comandas, estoque, painel, relatórios. |
+| `20261024150400_phase2_trinks_import.sql` | Importação controlada do Trinks (mapeamento conferido, prévia, decisões). |
+| `20261024150500_phase3_finance.sql` | Financeiro, conciliação por CSV, comissões configuráveis. |
+| `20261024150600_phase4_messaging.sql` | WhatsApp oficial (bloqueado sem credenciais), consentimento, caixa de entrada, follow-ups, pesquisas, SDR IA. |
+
+As migrações foram renumeradas antes do primeiro envio ao Cloud: os nomes
+anteriores tinham datas futuras (25 a 29/10/2026), o que faria qualquer
+migração nova criada depois ficar ordenada antes delas e ser recusada pelo
+`db push`. Nenhuma havia sido aplicada em ambiente compartilhado.
 
 ## Modelo de dados
 

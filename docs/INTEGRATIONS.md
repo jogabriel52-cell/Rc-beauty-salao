@@ -131,7 +131,14 @@ automática com a Meta não foi implementada.
 - Status de entrega (`sent`, `delivered`, `read`, `failed`) atualizam as
   mensagens enviadas.
 - **Opt-out por palavra-chave**: `PARAR`, `SAIR`, `STOP`, `CANCELAR`,
-  `DESCADASTRAR` registram opt-out de atendimento e de marketing.
+  `DESCADASTRAR` (mensagem só com a palavra, sem diferenciar maiúsculas)
+  registram o pedido **no número** (`conversations.opted_out_at`), mesmo que
+  ainda não exista cadastro, e bloqueiam qualquer envio para ele — inclusive
+  resposta dentro de 24 h — até haver opt-in registrado depois. Havendo cliente
+  vinculada, registram também opt-out de atendimento e de marketing; se o
+  cadastro for vinculado depois, o opt-out é copiado para a cliente com a data
+  original. Nenhuma mensagem de confirmação é enviada automaticamente
+  (decisão pendente).
 
 ### Pendências (dependem de credenciais ou decisões externas)
 

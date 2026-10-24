@@ -1,7 +1,7 @@
 # Testes do modelo inicial (histórico)
 
 `rls_phase1_baseline_test.sql` contém as 70 asserções escritas para a migração
-inicial (`20261024000000_phase1_core.sql`, papéis fixos em enum), preservadas
+inicial (`20261024000000_phase1_core.sql` no commit 31d01c2 — hoje `20261024150100_phase1_core.sql`, papéis fixos em enum), preservadas
 como registro.
 
 | Data | Ambiente | Natureza | Resultado |

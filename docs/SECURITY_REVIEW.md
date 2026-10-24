@@ -132,6 +132,11 @@ no prompt; conteúdo de mensagens fora da auditoria.
 | P27 | Retenção de mensagens e de consentimento (prazo, expurgo/anonimização) | Recomendado (LGPD) | Pendente |
 | P28 | Limite de taxa no webhook e alerta para falhas de assinatura repetidas | Recomendado | Pendente (Meta já limita a origem; sem limitador próprio) |
 | P29 | "Modelo aprovado" é declarado manualmente na tela; sincronizar com a Meta | Recomendado | Pendente — exige credenciais |
+| P30 | PARAR de número ainda sem cadastro | Bloqueante para ativar | **Corrigido e testado localmente**: fica registrado na conversa, bloqueia qualquer envio até novo opt-in e vira opt-out da cliente quando o cadastro é vinculado |
+| P31 | Confirmar ao contato que o pedido de saída foi recebido (mensagem automática) | Decisão | Não implementado (nenhum envio automático) |
+| P32 | Aplicar as migrações no Cloud de desenvolvimento e repetir pgTAP, RLS/grants e advisors lá | Bloqueante para validar nível 2 | Pendente — ver `CLOUD_SETUP.md` ("Aplicação pendente") |
+| P33 | Auth do Cloud de desenvolvimento (cadastro desligado, confirmação de e-mail, TOTP, senha, URLs) | Bloqueante para usuários de teste | Pendente — instruções exatas em `CLOUD_SETUP.md` |
+| P34 | Frontend na Hostinger: endereço, SSL/Forçar HTTPS, URLs do Auth e `ALLOWED_ORIGINS` | Antes de publicar | Preparado (`.htaccess`, CSP, `build:hosting`); publicação pendente (`HOSTING.md`) |
 
 ## Sobre o SQL original do Builder
 

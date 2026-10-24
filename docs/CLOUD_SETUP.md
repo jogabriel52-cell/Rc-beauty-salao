@@ -8,6 +8,81 @@ Os nomes de menus do painel mudam com o tempo. Se algo não estiver onde este
 documento indica, procure pela função equivalente na documentação atual do
 Supabase e atualize este arquivo.
 
+## Projeto de desenvolvimento em uso
+
+| Item | Valor |
+|---|---|
+| Project ref | `biaezsatrxqpopeifkot` (sempre conferir antes de qualquer comando remoto) |
+| Nome no painel | `jogabriel52-cell's Project` |
+| Região | `us-east-1` (a recomendação abaixo era `sa-east-1`; aceitável para desenvolvimento, rever para produção) |
+| PostgreSQL | 17.11 |
+| Estado em 2026-10-24 | Ativo; sem tabelas em `public`, sem migrações registradas, sem Edge Functions; já possui `public.rls_auto_enable()` + event trigger `ensure_rls` (reproduzidos na migração `20261024150000_rls_auto_enable_guard.sql`); `pgtap` disponível, não instalado |
+| Migrações aplicadas | **Nenhuma** (ver "Aplicação pendente") |
+
+### Aplicação pendente
+
+O fluxo autorizado é `supabase db push --dry-run`, revisão e depois
+`supabase db push`, somente neste ref. Ele ainda não foi executado porque:
+
+1. o ambiente de trabalho do Claude Code não tinha `SUPABASE_ACCESS_TOKEN` nem
+   `SUPABASE_DB_PASSWORD` configurados como segredos; e
+2. a rede desse ambiente só permite HTTPS: conexões Postgres
+   (`db.biaezsatrxqpopeifkot.supabase.co:5432` e
+   `aws-*-us-east-1.pooler.supabase.com:5432/6543`) não abrem, e o `db push`
+   precisa delas.
+
+Para aplicar, uma das opções:
+
+- **Na máquina do responsável** (recomendado), com a CLI e sem colar senhas em
+  chat:
+  ```bash
+  supabase login
+  supabase link --project-ref biaezsatrxqpopeifkot
+  supabase migration list            # remoto deve estar vazio
+  supabase db push --dry-run         # deve listar exatamente as 7 migrações do repositório
+  supabase db push
+  ```
+- **No ambiente do Claude Code**: configurar `SUPABASE_ACCESS_TOKEN` e
+  `SUPABASE_DB_PASSWORD` como segredos do ambiente e liberar na política de
+  rede os hosts acima (portas 5432/6543); vale para uma sessão nova.
+
+O dry-run esperado lista, nesta ordem:
+
+```
+20261024150000_rls_auto_enable_guard.sql
+20261024150100_phase1_core.sql
+20261024150200_phase0_access_model.sql
+20261024150300_phase1_operations.sql
+20261024150400_phase2_trinks_import.sql
+20261024150500_phase3_finance.sql
+20261024150600_phase4_messaging.sql
+```
+
+Na primeira migração, `create or replace` muda apenas o `search_path` da função
+existente de `pg_catalog` para vazio (convenção do projeto; o corpo é o mesmo)
+e o event trigger **não** é recriado, porque já existe.
+
+### Auth do projeto de desenvolvimento (fazer no painel)
+
+Não foi possível aplicar pelo ambiente (sem token da Management API). Valores
+a configurar em **Authentication**, iguais aos do `supabase/config.toml`,
+exceto a confirmação de e-mail, que no Cloud fica ligada:
+
+| Onde | Ajuste |
+|---|---|
+| Sign In / Providers → User Signups | **Allow new users to sign up: desligado** |
+| Sign In / Providers → Email | Email provider ligado; **Confirm email: ligado**; Secure email change ligado |
+| Sign In / Providers → demais provedores | Todos desligados (inclusive anonymous sign-ins e telefone) |
+| URL Configuration → Site URL | `http://localhost:5173` |
+| URL Configuration → Redirect URLs | apenas `http://localhost:5173/definir-senha` (sem curingas) |
+| Multi-Factor → TOTP (App Authenticator) | **Enabled** (inscrição e verificação). A exigência para Admin Geral e Direção é aplicada pelo banco (`requires_mfa` + `aal2`) |
+| Multi-Factor → Phone | Desligado |
+| Passwords / Policies | Mínimo **10** caracteres; exigir **letras e números**; ligar proteção contra senhas vazadas se o plano oferecer |
+| Emails → SMTP | Pendente: o SMTP padrão só envia para membros da equipe do projeto |
+
+Não alterar tabelas do schema `auth` diretamente. Quando o endereço da
+hospedagem for escolhido, acrescentar a URL dele (`docs/HOSTING.md`).
+
 ## 1. Conta e organização
 
 - Conta do Supabase com **MFA ativado** para todas as pessoas com acesso ao

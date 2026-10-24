@@ -77,6 +77,9 @@ Stack:
   verificação do canal só pelo servidor; a aplicação e a IA criam apenas
   rascunhos. Nunca ativar envio ou IA sem credenciais oficiais, consentimento e
   testes (`docs/INTEGRATIONS.md`).
+- Projeto Cloud de desenvolvimento: ref `biaezsatrxqpopeifkot`. Confirme o ref
+  antes de qualquer comando remoto; nunca use outro projeto. Nada de `db reset`,
+  restore ou drop remotos.
 - Clientes: nunca expor dados de outra unidade; busca entre unidades só por
   telefone/e-mail idênticos e com retorno mascarado (`find_client_candidates`).
 - `created_by`, `created_at` e `updated_at` são preenchidos pelo gatilho
@@ -124,6 +127,7 @@ npm run -w apps/web dev                # http://localhost:5173
 npm run -w apps/web typecheck && npm run -w apps/web lint && npm run -w apps/web test
 npm run -w apps/web build && npm run -w apps/web check:bundle
 npm run -w apps/web e2e                # Playwright contra a stack local
+npm run -w apps/web build:hosting      # build estático para a Hostinger (usa apps/web/.env.production)
 ./scripts/precheck-migrations.sh       # nível 0 (preliminar, sem Docker)
 ```
 
@@ -154,6 +158,7 @@ mudança não for aplicada.
 | `docs/INTEGRATIONS.md` | Trinks (CSV), WhatsApp, banco — status e pré-requisitos |
 | `docs/SERVER_FUNCTIONS.md` | Contratos das Edge Functions |
 | `docs/CLOUD_SETUP.md` | Configuração do Supabase Cloud de desenvolvimento |
+| `docs/HOSTING.md` | Build estático e passos para publicar na Hostinger |
 | `docs/BUILD_AND_VALIDATION.md` | Níveis de validação e evidências exigidas |
 | `supabase/BOOTSTRAP.md` | Criação do primeiro Admin Geral |
 | `tests/legacy/README.md` | Registro dos testes do modelo inicial |

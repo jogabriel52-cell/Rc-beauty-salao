@@ -169,6 +169,40 @@ select throws_ok(format($$select public.messaging_prepare_send(%L, 'Ok, removida
   '23514', null, 'após opt-out nada é enviado, nem dentro da janela');
 reset role; select tests.clear();
 
+-- PARAR de número ainda sem cadastro
+select public.whatsapp_ingest($${"entry":[{"changes":[{"value":{"metadata":{"phone_number_id":"123456789012"},
+  "messages":[{"from":"5511955550077","id":"wamid.NC1","type":"text","text":{"body":"Oi, quanto custa?"}},
+              {"from":"5511955550077","id":"wamid.NC2","type":"text","text":{"body":" sair "}}]}}]}]}$$::jsonb);
+insert into test_ids (k, v) select 'conv_nc', id from public.conversations where contact_phone = '5511955550077';
+-- now() é fixo na transação do teste: simula que o SAIR chegou uma hora antes.
+update public.conversations set opted_out_at = now() - interval '1 hour' where id = tests.id('conv_nc');
+select ok((select opted_out_at is not null and client_unit_id is null from public.conversations where id = tests.id('conv_nc')),
+  'SAIR de número sem cadastro fica registrado na conversa');
+select tests.login('vend');
+select throws_ok(format($$select public.messaging_prepare_send(%L, 'Custa R$ 40', null)$$, tests.id('conv_nc')),
+  '23514', 'Contato pediu para não receber mensagens (opt-out por PARAR)', 'número sem cadastro que pediu PARAR não recebe nem dentro da janela');
+reset role; select tests.clear();
+insert into test_ids (k, v) values ('id_nc', gen_random_uuid()), ('cu_nc', gen_random_uuid());
+insert into public.client_identities (id, full_name, phone) values (tests.id('id_nc'), 'Cliente Cadastrada Depois', '5511955550077');
+insert into public.client_units (id, unit_id, identity_id) values (tests.id('cu_nc'), tests.unit('geral'), tests.id('id_nc'));
+select tests.login('vend');
+select lives_ok(format($$update public.conversations set client_unit_id = %L where id = %L$$, tests.id('cu_nc'), tests.id('conv_nc')),
+  'conversa vinculada ao cadastro feito depois');
+reset role; select tests.clear();
+select is(public.consent_status(tests.id('cu_nc'), 'marketing'), 'opt_out', 'opt-out do número passa para a cliente (marketing)');
+select is(public.consent_status(tests.id('cu_nc'), 'atendimento'), 'opt_out', 'e atendimento');
+select ok((select bool_and(e.occurred_at = c.opted_out_at and e.source = 'palavra_chave')
+           from public.consent_events e join public.conversations c on c.client_unit_id = e.client_unit_id
+           where e.client_unit_id = tests.id('cu_nc')), 'com a data original do PARAR');
+select tests.login('vend');
+select lives_ok(format($$insert into public.consent_events (unit_id, client_unit_id, purpose, action, source)
+  values (%L, %L, 'atendimento', 'opt_in', 'whatsapp')$$, tests.unit('geral'), tests.id('cu_nc')), 'cliente autoriza de novo (opt-in)');
+select lives_ok(format($$select public.messaging_prepare_send(%L, 'Custa R$ 40', null)$$, tests.id('conv_nc')),
+  'com opt-in posterior ao PARAR, a resposta volta a ser permitida');
+select throws_ok(format($$update public.conversations set opted_out_at = null where id = %L$$, tests.id('conv_nc')),
+  '42501', null, 'aplicação não apaga o PARAR da conversa');
+reset role; select tests.clear();
+
 -- Resultado do envio e status do provedor (servidor)
 select public.messaging_mark_result((select id from public.messages where body = 'Olá! Temos horário amanhã.'), 'wamid.OUT1', null);
 select public.whatsapp_ingest($${"entry":[{"changes":[{"value":{"metadata":{"phone_number_id":"123456789012"},

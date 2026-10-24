@@ -42,8 +42,12 @@ Validação feita até aqui (detalhes em `docs/BUILD_AND_VALIDATION.md`):
   (login, MFA TOTP, convite, desativação) — passando.
 - **Aplicação (nível 3)**: typecheck, lint, testes unitários, build sem segredo
   e E2E no navegador contra a stack local — passando.
-- **Cloud de desenvolvimento (nível 2)**: **não executado** — falta a
-  referência do projeto Supabase Cloud exclusivo da RC Beauty.
+- **Cloud de desenvolvimento (nível 2)**: projeto `biaezsatrxqpopeifkot`
+  identificado e conferido (vazio). **Migrações ainda não aplicadas**: o
+  `supabase db push --dry-run` exige token e senha do banco e conexão Postgres,
+  indisponíveis no ambiente de trabalho (`docs/CLOUD_SETUP.md`).
+- **Hospedagem**: frontend preparado para build estático na Hostinger
+  (`docs/HOSTING.md`); nada publicado, nenhum domínio conectado.
 
 Nada foi publicado, nenhum deploy foi feito e nenhum dado real foi usado. O
 sistema não deve ser descrito como "seguro" ou "validado em produção".

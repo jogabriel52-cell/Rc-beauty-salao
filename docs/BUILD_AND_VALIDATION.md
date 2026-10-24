@@ -89,6 +89,9 @@ supabase db push
 | 2026-10-24 | 0 (preliminar) | PostgreSQL 16 + simulador do Auth | Fase 4 | `scripts/precheck-migrations.sh`: 6 migrações aplicadas (pgTAP indisponível nesse PostgreSQL) |
 | 2026-10-24 | 1 | Stack local oficial | Fase 4 | `supabase db reset` ok; `supabase test db`: 338/338 (69 + 99 + 38 + 58 + 74); integração: 38/38 (20 + 6 + 12) |
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 4 | typecheck, lint, 19 unitários, build, bundle sem segredo, E2E 13/13 |
+| 2026-10-24 | 1 | Stack local oficial | Migrações renumeradas + guarda `ensure_rls` + PARAR sem cadastro | `supabase db reset` ok; `supabase test db`: 350/350 (72 + 99 + 38 + 58 + 83); guarda reaplicada 2× sem duplicar o gatilho; integração: 39/39 |
+| 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | idem + build de hospedagem | typecheck, lint, 19 unitários, build, bundle sem segredo, E2E 13/13; `build:hosting` com o projeto de desenvolvimento (só URL + chave publicável) e teste do `dist/` com fallback de rotas e a CSP do `.htaccess`: sem erros |
+| 2026-10-24 | 2 (somente leitura) | Cloud dev `biaezsatrxqpopeifkot` | — | Alvo confirmado pelo ref; vazio (sem tabelas, sem migrações, sem funções); `ensure_rls`/`rls_auto_enable` inspecionados. **Nenhuma migração aplicada**: `db push --dry-run` não pôde rodar (sem `SUPABASE_ACCESS_TOKEN`/`SUPABASE_DB_PASSWORD` e sem rede Postgres no ambiente) |
 | — | — | Graph API (Meta) e Messages API (Anthropic) | Fase 4 | **Não executado**: sem credenciais oficiais nem chave da IA |
 | — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
 
@@ -147,6 +150,15 @@ supabase db push
 | Faltava como iniciar conversa com cliente já cadastrada (follow-up, reengajamento) | revisão das telas | função `messaging_start_conversation` (sem envio) + testes |
 | Tela do canal recarregava e perdia a confirmação "Dados salvos" | E2E | não desmontar o formulário durante a recarga |
 | Seletor "Pesquisa" ambíguo com o diálogo aberto | E2E | aguardar o fechamento do diálogo e rótulo exato |
+
+### Falhas encontradas e corrigidas antes do primeiro envio ao Cloud
+
+| Falha | Como foi achada | Correção |
+|---|---|---|
+| Migrações com datas futuras (25 a 29/10/2026): uma migração nova criada depois ficaria ordenada antes delas e o `db push` a recusaria | revisão da ordem e das datas | renumeradas para `20261024150000`–`20261024150600`, na mesma ordem (nenhuma tinha sido aplicada em ambiente compartilhado) |
+| O Cloud tem `rls_auto_enable`/`ensure_rls` que o repositório não tinha (divergência banco × repositório) | inspeção do projeto | migração idempotente que recria a função e só cria o gatilho se não existir; testes pgTAP |
+| PARAR enviado por número sem cadastro não era registrado; uma resposta dentro de 24 h ainda seria permitida | revisão da Fase 4 | opt-out no nível da conversa (`opted_out_at`), bloqueio no envio até novo opt-in, e cópia para o consentimento da cliente quando o cadastro é vinculado |
+| Teste do novo opt-in falhou porque `now()` é fixo dentro da transação de teste | pgTAP | o teste simula o PARAR uma hora antes |
 
 ## Roteiro manual no Cloud de desenvolvimento (nível 2)
 

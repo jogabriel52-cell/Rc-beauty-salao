@@ -2,7 +2,7 @@
 
 Todas as regras deste documento são aplicadas **no banco** (RLS, GRANTs e
 gatilhos). A interface só reflete essas regras para não oferecer ações que vão
-falhar. Implementação: `supabase/migrations/20261025000000_phase0_access_model.sql`
+falhar. Implementação: `supabase/migrations/20261024150200_phase0_access_model.sql`
 e as políticas de cada módulo nas migrações das fases seguintes.
 
 ## Conceitos

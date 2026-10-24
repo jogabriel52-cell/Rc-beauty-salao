@@ -239,5 +239,18 @@ select ok(not exists (
 select ok(not has_function_privilege('authenticated', 'public.admin_find_user_id_by_email(text)', 'execute'),
   'busca de usuário por e-mail só para service_role');
 
+-- Proteção ensure_rls (RLS automático em tabelas novas de public)
+select is((select count(*)::int from pg_event_trigger where evtname = 'ensure_rls'
+           and evtfoid = 'public.rls_auto_enable()'::regprocedure and evtenabled <> 'D'), 1,
+  'event trigger ensure_rls existe uma vez e aponta para rls_auto_enable');
+select ok(not has_function_privilege('anon', 'public.rls_auto_enable()', 'execute')
+          and not has_function_privilege('authenticated', 'public.rls_auto_enable()', 'execute')
+          and not has_function_privilege('service_role', 'public.rls_auto_enable()', 'execute'),
+  'rls_auto_enable não é executável por anon, authenticated nem service_role');
+create table public.tests_rls_probe (x int);
+select ok((select rowsecurity from pg_tables where schemaname = 'public' and tablename = 'tests_rls_probe'),
+  'tabela nova em public nasce com RLS habilitado');
+drop table public.tests_rls_probe;
+
 select * from finish();
 rollback;

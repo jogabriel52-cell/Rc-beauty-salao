@@ -169,6 +169,7 @@ function ConversationView({ id, channel, onChanged }:
           <h2 className="card-title">{c.contact_name ?? formatPhone(c.contact_phone)}</h2>
           <div className="small muted">{formatPhone(c.contact_phone)}
             {c.client_unit_id ? <> · <Link to={`/clientes/${c.client_unit_id}`}>ver cliente</Link></> : " · sem cadastro vinculado"}
+            {c.opted_out_at && <> · <Badge tone="danger">Pediu para não receber (PARAR) em {formatDateTime(c.opted_out_at)}</Badge></>}
           </div>
         </div>
         {client.data && (

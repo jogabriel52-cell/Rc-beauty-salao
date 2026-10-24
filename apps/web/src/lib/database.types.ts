@@ -403,14 +403,14 @@ isOneToOne: false
                   ]
                 },"conversations": {
                   Row: {
-                    "assigned_to": string | null,"client_unit_id": string | null,"contact_name": string | null,"contact_phone": string,"created_at": string,"id": string,"last_inbound_at": string | null,"last_message_at": string | null,"status": string,"unit_id": string,"updated_at": string
+                    "assigned_to": string | null,"client_unit_id": string | null,"contact_name": string | null,"contact_phone": string,"created_at": string,"id": string,"last_inbound_at": string | null,"last_message_at": string | null,"opted_out_at": string | null,"status": string,"unit_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "assigned_to"?: string | null,"client_unit_id"?: string | null,"contact_name"?: string | null,"contact_phone": string,"created_at"?: string,"id"?: string,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"status"?: string,"unit_id": string,"updated_at"?: string
+                    "assigned_to"?: string | null,"client_unit_id"?: string | null,"contact_name"?: string | null,"contact_phone": string,"created_at"?: string,"id"?: string,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"opted_out_at"?: string | null,"status"?: string,"unit_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "assigned_to"?: string | null,"client_unit_id"?: string | null,"contact_name"?: string | null,"contact_phone"?: string,"created_at"?: string,"id"?: string,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"status"?: string,"unit_id"?: string,"updated_at"?: string
+                    "assigned_to"?: string | null,"client_unit_id"?: string | null,"contact_name"?: string | null,"contact_phone"?: string,"created_at"?: string,"id"?: string,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"opted_out_at"?: string | null,"status"?: string,"unit_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {

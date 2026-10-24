@@ -19,6 +19,7 @@ const digits = run.replace(/\D/g, "7").padEnd(8, "3").slice(0, 8);
 const phoneNumberId = `90${digits}`;
 const phoneOptOut = `55118${digits}`;
 const phoneOk = `55117${digits}`;
+const phoneUnknown = `55115${digits}`;
 
 let geral: string;
 let vend: SupabaseClient;
@@ -158,6 +159,18 @@ describe("envio (whatsapp-send)", () => {
       const res = await callFunction("whatsapp-send", { conversation_id: conv!.id, body: "Olá" }, vend);
       expect(res.status).toBe(400);
       expect(res.body.error?.message).toMatch(/opt-out/);
+    });
+
+    it("número sem cadastro que mandou PARAR: envio recusado pelo banco (400), sem tentativa de envio", async () => {
+      expect((await postWebhook(inbound(phoneUnknown, "Oi"))).status).toBe(200);
+      expect((await postWebhook(inbound(phoneUnknown, "PARAR"))).status).toBe(200);
+      const conv = await conversation(phoneUnknown);
+      expect(conv?.client_unit_id).toBeNull();
+      const res = await callFunction("whatsapp-send", { conversation_id: conv!.id, body: "Tudo bem?" }, vend);
+      expect(res.status).toBe(400);
+      expect(res.body.error?.message).toMatch(/PARAR/);
+      const { data } = await admin().from("messages").select("id").eq("conversation_id", conv!.id).eq("direction", "saida");
+      expect(data).toEqual([]);
     });
 
     it("dentro da janela e sem opt-out, mas sem credencial da unidade: 503 e mensagem marcada como falha", async () => {
