@@ -157,6 +157,12 @@ Valores iniciais; a direção pode alterá-los em Perfis de acesso.
 | `finance.view` / `finance.manage` / `finance.reconcile` | U | U | U | | | | |
 | `commissions.view` — comissões | U | U | **P** | **P** | | **P** | |
 | `commissions.manage` — regras, metas, apuração | U | U | | | | | |
+| `messaging.view` — caixa de entrada | U | U | U | U | | | |
+| `messaging.send` — responder/enviar (canal ativo) | U | U | U | U | | | |
+| `messaging.manage` — canal, modelos, ativação, SDR IA | U | U | | | | | |
+| `consent.manage` — registrar consentimento/opt-out | U | U | U | U | U | | |
+| `followups.manage` — follow-ups | U | U | U | **P** | **P** | | |
+| `surveys.manage` — pesquisa de satisfação | U | U | U | | | | |
 
 Escopo **P** (próprio):
 
@@ -166,6 +172,22 @@ Escopo **P** (próprio):
 - `sales.view` P: só comandas que a pessoa abriu, vendeu ou finalizou.
 - `commissions.view` P: só as próprias apurações e o próprio plano (ninguém
   configura, apura, aprova ou paga a própria comissão — ver `COMMISSIONS.md`).
+- `messaging.view` P (disponível para perfis personalizados): só conversas
+  atribuídas à pessoa. Com U, vê todas da unidade; atribuir, encerrar e
+  reabrir conversas exige U + `messaging.send`.
+- `followups.manage` P: só follow-ups atribuídos à própria pessoa, e só pode
+  criá-los para si. Reengajamento (lista de inativas) exige U e `clients.view`.
+
+Regras de mensagens garantidas pelo banco (valem para qualquer perfil):
+
+- O canal só fica ativo com credencial, webhook e teste verificados pelo
+  servidor e texto de consentimento; a aplicação não grava essas marcas.
+- Pessoas só criam e descartam **rascunhos**; envio, recebimento e status são
+  gravados pelo servidor. A IA só gera rascunhos.
+- Consentimento é registro somente de inclusão (revogar = novo opt-out); datas
+  futuras são recusadas.
+- Canal, modelos, consentimento, follow-ups e pesquisas são auditados; o
+  conteúdo das mensagens não vai para a auditoria.
 
 ## Clientes: o que cada unidade enxerga
 
@@ -182,5 +204,7 @@ vinculadas (é a mesma identidade) e fica registrada na auditoria.
 
 Importação: o mapeamento de colunas precisa ser aprovado por pessoa diferente
 de quem o editou por último (conferência). Comissões: a apuração é aprovada
-por pessoa diferente de quem apurou. As permissões de mensagens são
-acrescentadas na fase 4.
+por pessoa diferente de quem apurou.
+
+Mensagens: conversas e consentimento são da unidade dona do número. Uma
+cliente vinculada às duas unidades tem consentimentos separados em cada uma.

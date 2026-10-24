@@ -111,7 +111,27 @@ extratos entram só por CSV (nenhuma credencial bancária armazenada).
 | P21 | Definir se vendas das comandas entram no fluxo de caixa automaticamente ou por lançamento manual | Decisão | Pendente |
 | P22 | Integração bancária/adquirente por API | Futuro | Sem credenciais; CSV em uso |
 
-Pendências da fase 4 são acrescentadas na seção correspondente.
+### Fase 4
+
+Controles: canal oficial por unidade, bloqueado até verificações gravadas só
+pelo servidor; credenciais apenas em segredos de Edge Functions (nunca no banco
+ou no frontend); webhook com assinatura HMAC verificada antes de gravar;
+consentimento por finalidade em eventos somente de inclusão, com opt-out por
+palavra-chave e datas futuras recusadas; envio decidido no banco com o JWT de
+quem envia (permissão, canal ativo, opt-in/opt-out, janela de 24 h, modelo
+aprovado); pessoas só criam rascunhos; IA desligada por padrão, só rascunhos,
+com dados mínimos (sem telefone, e-mail ou CRM) e o histórico tratado como dado
+no prompt; conteúdo de mensagens fora da auditoria.
+
+| # | Item | Tipo | Situação |
+|---|---|---|---|
+| P23 | Conta WhatsApp Business verificada, tokens permanentes por unidade, segredo do app e versão da Graph API nos segredos do projeto | Bloqueante para enviar | Pendente — credenciais externas |
+| P24 | Teste de ponta a ponta contra a Graph API (credencial, teste, envio, status, webhook real com assinatura da Meta) | Bloqueante para declarar a integração validada | **Não executado** |
+| P25 | Texto de consentimento e fluxo de coleta revisados (LGPD) | Bloqueante para ativar | Pendente — decisão da direção |
+| P26 | Uso da SDR IA: base legal, aviso às clientes, termos do provedor, chave em conta da empresa | Bloqueante para ligar a IA | Pendente — decisão da direção |
+| P27 | Retenção de mensagens e de consentimento (prazo, expurgo/anonimização) | Recomendado (LGPD) | Pendente |
+| P28 | Limite de taxa no webhook e alerta para falhas de assinatura repetidas | Recomendado | Pendente (Meta já limita a origem; sem limitador próprio) |
+| P29 | "Modelo aprovado" é declarado manualmente na tela; sincronizar com a Meta | Recomendado | Pendente — exige credenciais |
 
 ## Sobre o SQL original do Builder
 

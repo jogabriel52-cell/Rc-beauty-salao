@@ -375,6 +375,64 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"consent_events": {
+                  Row: {
+                    "action": string,"channel": string,"client_unit_id": string,"created_at": string,"created_by": string | null,"evidence": string | null,"id": string,"occurred_at": string,"purpose": string,"seq": number,"source": string,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"channel"?: string,"client_unit_id": string,"created_at"?: string,"created_by"?: string | null,"evidence"?: string | null,"id"?: string,"occurred_at"?: string,"purpose": string,"seq"?: never,"source": string,"unit_id": string
+                  }
+                  Update: {
+                    "action"?: string,"channel"?: string,"client_unit_id"?: string,"created_at"?: string,"created_by"?: string | null,"evidence"?: string | null,"id"?: string,"occurred_at"?: string,"purpose"?: string,"seq"?: never,"source"?: string,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "consent_events_client_unit_id_unit_id_fkey"
+      columns: ["client_unit_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "client_units"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "consent_events_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"conversations": {
+                  Row: {
+                    "assigned_to": string | null,"client_unit_id": string | null,"contact_name": string | null,"contact_phone": string,"created_at": string,"id": string,"last_inbound_at": string | null,"last_message_at": string | null,"status": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assigned_to"?: string | null,"client_unit_id"?: string | null,"contact_name"?: string | null,"contact_phone": string,"created_at"?: string,"id"?: string,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"status"?: string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "assigned_to"?: string | null,"client_unit_id"?: string | null,"contact_name"?: string | null,"contact_phone"?: string,"created_at"?: string,"id"?: string,"last_inbound_at"?: string | null,"last_message_at"?: string | null,"status"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conversations_assigned_to_fkey"
+      columns: ["assigned_to"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conversations_client_unit_id_unit_id_fkey"
+      columns: ["client_unit_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "client_units"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "conversations_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"crm_interactions": {
                   Row: {
                     "body": string,"client_unit_id": string,"created_at": string,"created_by": string | null,"id": string,"kind": string,"occurred_at": string,"unit_id": string
@@ -467,6 +525,38 @@ isOneToOne: false
       referencedColumns: ["id","unit_id"]
     },{
       foreignKeyName: "finance_entries_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"followups": {
+                  Row: {
+                    "assigned_to": string,"client_unit_id": string,"created_at": string,"created_by": string | null,"done_at": string | null,"done_by": string | null,"due_at": string,"id": string,"kind": string,"outcome": string | null,"reason": string,"status": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assigned_to": string,"client_unit_id": string,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_at": string,"id"?: string,"kind": string,"outcome"?: string | null,"reason": string,"status"?: string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "assigned_to"?: string,"client_unit_id"?: string,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_at"?: string,"id"?: string,"kind"?: string,"outcome"?: string | null,"reason"?: string,"status"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "followups_assigned_to_fkey"
+      columns: ["assigned_to"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "followups_client_unit_id_unit_id_fkey"
+      columns: ["client_unit_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "client_units"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "followups_unit_id_fkey"
       columns: ["unit_id"]
 isOneToOne: false
       referencedRelation: "units"
@@ -575,6 +665,72 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "permissions"
       referencedColumns: ["code"]
+    }
+                  ]
+                },"message_templates": {
+                  Row: {
+                    "active": boolean,"body": string,"created_at": string,"created_by": string | null,"id": string,"language": string,"name": string,"provider_status": string,"purpose": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"body": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"language"?: string,"name": string,"provider_status"?: string,"purpose": string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"body"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"language"?: string,"name"?: string,"provider_status"?: string,"purpose"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_templates_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"messages": {
+                  Row: {
+                    "ai_generated": boolean,"body": string | null,"conversation_id": string,"created_at": string,"created_by": string | null,"direction": string,"error": string | null,"id": string,"kind": string,"provider_message_id": string | null,"sent_by": string | null,"status": string,"template_id": string | null,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ai_generated"?: boolean,"body"?: string | null,"conversation_id": string,"created_at"?: string,"created_by"?: string | null,"direction": string,"error"?: string | null,"id"?: string,"kind"?: string,"provider_message_id"?: string | null,"sent_by"?: string | null,"status"?: string,"template_id"?: string | null,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "ai_generated"?: boolean,"body"?: string | null,"conversation_id"?: string,"created_at"?: string,"created_by"?: string | null,"direction"?: string,"error"?: string | null,"id"?: string,"kind"?: string,"provider_message_id"?: string | null,"sent_by"?: string | null,"status"?: string,"template_id"?: string | null,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "messages_conversation_id_unit_id_fkey"
+      columns: ["conversation_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "messages_template_id_unit_id_fkey"
+      columns: ["template_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "message_templates"
+      referencedColumns: ["id","unit_id"]
+    }
+                  ]
+                },"messaging_channels": {
+                  Row: {
+                    "activated_at": string | null,"activated_by": string | null,"ai_enabled": boolean,"ai_enabled_at": string | null,"ai_enabled_by": string | null,"consent_text": string | null,"created_at": string,"created_by": string | null,"credentials_verified_at": string | null,"display_phone": string | null,"id": string,"phone_number_id": string | null,"provider": string,"status": string,"status_reason": string | null,"test_message_at": string | null,"unit_id": string,"updated_at": string,"waba_id": string | null,"webhook_verified_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activated_at"?: string | null,"activated_by"?: string | null,"ai_enabled"?: boolean,"ai_enabled_at"?: string | null,"ai_enabled_by"?: string | null,"consent_text"?: string | null,"created_at"?: string,"created_by"?: string | null,"credentials_verified_at"?: string | null,"display_phone"?: string | null,"id"?: string,"phone_number_id"?: string | null,"provider"?: string,"status"?: string,"status_reason"?: string | null,"test_message_at"?: string | null,"unit_id": string,"updated_at"?: string,"waba_id"?: string | null,"webhook_verified_at"?: string | null
+                  }
+                  Update: {
+                    "activated_at"?: string | null,"activated_by"?: string | null,"ai_enabled"?: boolean,"ai_enabled_at"?: string | null,"ai_enabled_by"?: string | null,"consent_text"?: string | null,"created_at"?: string,"created_by"?: string | null,"credentials_verified_at"?: string | null,"display_phone"?: string | null,"id"?: string,"phone_number_id"?: string | null,"provider"?: string,"status"?: string,"status_reason"?: string | null,"test_message_at"?: string | null,"unit_id"?: string,"updated_at"?: string,"waba_id"?: string | null,"webhook_verified_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "messaging_channels_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: true
+      referencedRelation: "units"
+      referencedColumns: ["id"]
     }
                   ]
                 },"permissions": {
@@ -837,6 +993,58 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"survey_responses": {
+                  Row: {
+                    "appointment_id": string | null,"channel": string,"client_unit_id": string,"comment": string | null,"created_at": string,"created_by": string | null,"id": string,"score": number,"survey_id": string,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "appointment_id"?: string | null,"channel"?: string,"client_unit_id": string,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"score": number,"survey_id": string,"unit_id": string
+                  }
+                  Update: {
+                    "appointment_id"?: string | null,"channel"?: string,"client_unit_id"?: string,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"score"?: number,"survey_id"?: string,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "survey_responses_appointment_id_unit_id_fkey"
+      columns: ["appointment_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "appointments"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "survey_responses_client_unit_id_unit_id_fkey"
+      columns: ["client_unit_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "client_units"
+      referencedColumns: ["id","unit_id"]
+    },{
+      foreignKeyName: "survey_responses_survey_id_unit_id_fkey"
+      columns: ["survey_id","unit_id"]
+isOneToOne: false
+      referencedRelation: "surveys"
+      referencedColumns: ["id","unit_id"]
+    }
+                  ]
+                },"surveys": {
+                  Row: {
+                    "active": boolean,"created_at": string,"created_by": string | null,"id": string,"name": string,"question": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"id"?: string,"name": string,"question"?: string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"id"?: string,"name"?: string,"question"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "surveys_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"unit_memberships": {
                   Row: {
                     "access_profile_id": string,"active": boolean,"created_at": string,"created_by": string | null,"id": string,"unit_id": string,"updated_at": string,"user_id": string
@@ -967,6 +1175,9 @@ isOneToOne: false
 "can_update_identity":
 { Args: { "p_identity_id": string }; Returns: boolean
                            },
+"can_view_conversation":
+{ Args: { "p_conversation_id": string }; Returns: boolean
+                           },
 "can_view_identity":
 { Args: { "p_identity_id": string }; Returns: boolean
                            },
@@ -1001,6 +1212,9 @@ isOneToOne: false
                            },
 "commission_set_status":
 { Args: { "p_reason"?: string,"p_statement_id": string,"p_status": string }; Returns: undefined
+                           },
+"consent_status":
+{ Args: { "p_client_unit_id": string,"p_purpose": string }; Returns: string
                            },
 "create_client":
 { Args: { "p_birth_date"?: string,"p_email"?: string,"p_full_name": string,"p_identity_id"?: string,"p_phone"?: string,"p_service_notes"?: string,"p_unit_id": string }; Returns: string
@@ -1086,6 +1300,11 @@ isOneToOne: false
 "import_stage_rows":
 { Args: { "p_batch_id": string,"p_rows": Json }; Returns: number
                            },
+"inactive_clients":
+{ Args: { "p_days": number,"p_unit_id": string }; Returns: {
+              "client_name": string,"client_unit_id": string,"consent_marketing": string,"last_visit": string,"open_followups": number
+            }[]
+                           },
 "is_active_unit_member":
 { Args: { "p_unit_id": string,"p_user_id": string }; Returns: boolean
                            },
@@ -1115,6 +1334,18 @@ isOneToOne: false
                            },
 "merge_clients":
 { Args: { "p_keep": string,"p_merge": string,"p_unit_id": string }; Returns: string
+                           },
+"messaging_mark_channel":
+{ Args: { "p_field": string,"p_unit_code": string }; Returns: undefined
+                           },
+"messaging_mark_result":
+{ Args: { "p_error": string,"p_message_id": string,"p_provider_id": string }; Returns: undefined
+                           },
+"messaging_prepare_send":
+{ Args: { "p_body": string,"p_conversation_id": string,"p_draft_id"?: string,"p_template_id": string }; Returns: Json
+                           },
+"messaging_start_conversation":
+{ Args: { "p_client_unit_id": string }; Returns: string
                            },
 "mfa_required_for":
 { Args: { "p_user_id": string }; Returns: boolean
@@ -1172,8 +1403,22 @@ isOneToOne: false
 "sale_status_of":
 { Args: { "p_sale_id": string }; Returns: Database["public"]['Enums']["sale_status"]
                            },
+"sdr_context":
+{ Args: { "p_conversation_id": string }; Returns: Json
+                           },
+"sdr_save_draft":
+{ Args: { "p_actor": string,"p_body": string,"p_conversation_id": string }; Returns: string
+                           },
 "shares_unit_with":
 { Args: { "p_user_id": string }; Returns: boolean
+                           },
+"survey_candidates":
+{ Args: { "p_days"?: number,"p_survey_id": string }; Returns: {
+              "appointment_id": string,"client_name": string,"client_unit_id": string,"consent_atendimento": string,"service_name": string,"starts_at": string
+            }[]
+                           },
+"survey_results":
+{ Args: { "p_from": string,"p_survey_id": string,"p_to": string }; Returns: Json
                            },
 "tg_templates_guard_common":
 { Args: { "p_profile_id": string }; Returns: undefined
@@ -1182,6 +1427,9 @@ isOneToOne: false
 { Args: { "p_unit_id": string }; Returns: {
               "full_name": string,"job_title": string,"user_id": string
             }[]
+                           },
+"whatsapp_ingest":
+{ Args: { "p_payload": Json }; Returns: Json
                            }
           }
           Enums: {

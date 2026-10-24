@@ -7,14 +7,18 @@ este arquivo e os testes no mesmo commit.
 |---|---|---|
 | `admin-invite-user` | 0 | Implementada; testada na stack local |
 | `admin-set-user-status` | 0 | Implementada; testada na stack local |
+| `whatsapp-webhook` | 4 | Implementada; testada na stack local com segredos fictícios (sem a Meta) |
+| `whatsapp-send` | 4 | Implementada; testadas na stack local só as recusas (sem credencial oficial). **Envio real não testado** |
+| `whatsapp-verify-channel` | 4 | Implementada; testadas só as recusas (403, 503). **Graph API não testada** |
+| `sdr-draft` | 4 | Implementada; testadas só as recusas (IA desligada, sem chave). **Chamada real à IA não testada** |
 
 A importação do Trinks (Fase 2) **não usa Edge Function**: o CSV é lido no
 navegador e o banco valida, classifica e grava por funções `SECURITY DEFINER`
 que verificam `imports.run` do chamador (`import_*`). Assim nenhuma chave
 secreta é necessária e a auditoria registra o ator real.
 
-Funções das fases seguintes são acrescentadas a esta tabela quando
-implementadas.
+Financeiro e comissões (Fase 3) também não usam Edge Function: tudo é feito
+por RLS e funções do banco.
 
 Local: `supabase/functions/<nome>/index.ts` (Deno/TypeScript), código comum em
 `supabase/functions/_shared/`.
@@ -22,8 +26,10 @@ Local: `supabase/functions/<nome>/index.ts` (Deno/TypeScript), código comum em
 ## Regras comuns
 
 1. **Sem dependências externas.** As funções usam apenas `fetch` nas APIs REST
-   e Auth do próprio projeto (`_shared/supabase.ts`). Isso elimina download de
-   pacotes no boot e reduz a superfície de cadeia de suprimentos.
+   e Auth do próprio projeto (`_shared/supabase.ts`) e, na Fase 4, na Graph API
+   da Meta (`_shared/whatsapp.ts`) e na Messages API da Anthropic (`sdr-draft`).
+   Isso elimina download de pacotes no boot e reduz a superfície de cadeia de
+   suprimentos.
 2. **Método e formato.** Somente `POST` (e `OPTIONS`). Corpo JSON validado de
    forma estrita (campos desconhecidos → 400). Limite de tamanho por função.
 3. **CORS e origem** restritos a `ALLOWED_ORIGINS`. Origem não autorizada → 403.
@@ -43,8 +49,15 @@ Local: `supabase/functions/<nome>/index.ts` (Deno/TypeScript), código comum em
    requisição, status e duração.
 9. **Idempotência**: repetir após falha parcial não duplica nem corrompe dados.
 
+Exceção: `whatsapp-webhook` é chamada pela Meta, não pelo navegador — aceita
+`GET` (verificação) e `POST`, sem CORS nem JWT; a autenticação é o token de
+verificação (GET) e a assinatura HMAC do corpo (POST).
+
 Segredos (local: `supabase/functions/.env`, não versionado; nuvem:
-`supabase secrets set`): `ALLOWED_ORIGINS`, `SITE_URL`. URL e chaves do projeto
+`supabase secrets set`): `ALLOWED_ORIGINS`, `SITE_URL`; Fase 4:
+`WHATSAPP_GRAPH_VERSION`, `WHATSAPP_ACCESS_TOKEN_<UNIDADE>`,
+`WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `ANTHROPIC_API_KEY`,
+`SDR_MODEL` (opcional). URL e chaves do projeto
 são injetadas pelo Supabase (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`,
 `SUPABASE_SECRET_KEYS`).
 
@@ -99,3 +112,67 @@ Desativa ou reativa uma pessoa.
    `ban_duration = "876000h"` (desativar) ou `"none"` (reativar).
 4. `200 { ok }`. Se o passo 3 falhar: `502 auth_block_failed` com mensagem de que
    os dados já foram cortados; repetir é seguro.
+
+---
+
+## `whatsapp-webhook`
+
+Recebe eventos do WhatsApp oficial.
+
+- `GET ?hub.mode=subscribe&hub.verify_token=…&hub.challenge=…`: compara com
+  `WHATSAPP_VERIFY_TOKEN`; correto → 200 com o `challenge` e marca o webhook
+  como verificado nos canais com número cadastrado; errado → 403; sem segredo
+  → 503.
+- `POST` (máx. 512 KB): exige `X-Hub-Signature-256` = HMAC-SHA256 do corpo bruto
+  com `WHATSAPP_APP_SECRET` (comparação em tempo constante). Inválida → 401, sem
+  gravar. Válida → `whatsapp_ingest` (somente `service_role`): mensagens
+  recebidas, status de entrega e opt-out por palavra-chave. Responde 200 `ok`.
+- Números (`phone_number_id`) que não pertencem a nenhum canal são ignorados.
+
+## `whatsapp-send`
+
+Envia uma mensagem de uma conversa.
+
+**Quem pode:** `messaging.send` na unidade e acesso à conversa. Toda a regra
+(canal ativo, consentimento, janela de 24 h, modelo aprovado) está em
+`messaging_prepare_send`, chamado com o JWT de quem envia.
+
+**Entrada** (máx. 8 KB): `conversation_id`; e `body` (texto, até 4096) **ou**
+`template_id` (+ `variables`, até 10); opcional `draft_id` para enviar um
+rascunho.
+
+**Fluxo:** prepara (cria a mensagem `na_fila` com `sent_by`) → token da unidade
+(ausente: marca `falhou` e responde 503) → Graph API `/{phone_number_id}/messages`
+→ `messaging_mark_result` (`enviada` com o id do provedor, ou `falhou`).
+
+**Saída:** `{ ok: true, message_id }`. Erros: 400 (regra de consentimento/janela/
+modelo), 401, 403, 502 (WhatsApp recusou), 503 (canal não ativo ou sem credencial).
+
+## `whatsapp-verify-channel`
+
+Verificações exigidas para ativar o canal.
+
+**Quem pode:** `messaging.manage` na unidade.
+
+**Entrada:** `unit_id`, `action`:
+- `"credentials"`: GET na Graph API do número cadastrado com o token da unidade;
+  sucesso marca `credentials_verified_at`.
+- `"test"` (exige credencial verificada): `to`, `template_name`,
+  `template_language`; envia o modelo e marca `test_message_at`.
+
+Erros: 400 (sem número cadastrado, credencial não verificada), 403, 502, 503.
+
+## `sdr-draft`
+
+Sugere um rascunho de resposta com IA. **Nunca envia.**
+
+**Quem pode:** `messaging.send` e acesso à conversa; IA ligada no canal da
+unidade (`sdr_context` recusa com 55000 → 503 se desligada).
+
+**Entrada:** `conversation_id`.
+
+**Fluxo:** `sdr_context` (JWT do chamador: primeiro nome, serviços, últimas 20
+mensagens) → sem `ANTHROPIC_API_KEY` → 503 → Messages API (modelo `SDR_MODEL`,
+esforço baixo, até 1024 tokens; o histórico vai delimitado e é tratado como
+dado) → recusa do modelo → 422 → `sdr_save_draft` (somente `service_role`,
+registra quem pediu) → `{ ok: true, draft_id, body }`.

@@ -25,7 +25,13 @@ Sistema em construção por fases (`docs/PHASE_PLAN.md`). Situação:
   parâmetros de comissão que não foram informados (período, base, estornos,
   fonte do faturamento etc.) ficam "a confirmar" e bloqueiam a apuração até a
   direção decidir (`docs/COMMISSIONS.md`).
-- Fase 4: em andamento/não iniciada.
+- **Fase 4 — mensagens e relacionamento: implementada, com envio bloqueado.**
+  WhatsApp oficial por unidade (caixa de entrada, rascunhos, modelos, webhook
+  assinado), consentimento e opt-out por finalidade, follow-ups,
+  reengajamento de inativas, pesquisa de satisfação (NPS) e SDR IA que só
+  sugere rascunhos. O envio só pode ser ativado com credenciais oficiais da
+  Meta, consentimento e testes; a IA está desligada e sem chave. **Nenhuma
+  chamada real à Graph API ou à IA foi feita** (`docs/INTEGRATIONS.md`).
 
 Validação feita até aqui (detalhes em `docs/BUILD_AND_VALIDATION.md`):
 

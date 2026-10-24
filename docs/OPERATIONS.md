@@ -135,6 +135,35 @@ Rotina mensal do administrador do banco: `select public.import_purge_staging(30)
 
 Ver `docs/COMMISSIONS.md` (parâmetros a confirmar, exemplos e regras).
 
+## Mensagens e relacionamento
+
+- **Canal WhatsApp** (Direção/Admin Geral, `messaging.manage`): Mensagens →
+  Configurar canal. Cadastrar número, ID do número, conta e texto de
+  consentimento; verificar credencial; a Meta verifica o webhook; enviar teste
+  com modelo aprovado; só então **Ativar envio** **(banco)**. Suspender o envio
+  é imediato. As credenciais não são digitadas na tela (ficam nos segredos do
+  servidor — `docs/INTEGRATIONS.md`).
+- **Caixa de entrada** (`messaging.view`): conversas da unidade; responder
+  dentro de 24 h da última mensagem da cliente; fora disso, só modelo aprovado
+  e só para quem autorizou **(banco)**. Rascunhos podem ser salvos e
+  descartados; Gerente/Direção atribuem, encerram e reabrem conversas.
+- **Consentimento** (`consent.manage`): na ficha da cliente, aba
+  Consentimento — registrar autorização (com evidência: ficha assinada,
+  formulário) ou pedido para não receber, separando atendimento e marketing.
+  Não se apaga registro: para revogar, registra-se o opt-out. A cliente também
+  sai respondendo PARAR/SAIR **(banco)**.
+- **Follow-ups** (`followups.manage`): retorno, pós-atendimento,
+  reengajamento; Vendedora e Recepção criam e veem só os próprios; Gerente
+  atribui a qualquer pessoa da unidade. Concluir registra quem e quando.
+- **Reengajamento** (Gerente/Direção): clientes sem atendimento concluído nem
+  comanda finalizada há N dias, com a situação do consentimento de marketing;
+  selecionar e criar follow-ups. Nada é enviado automaticamente.
+- **Pesquisa de satisfação** (`surveys.manage`): atendimentos concluídos sem
+  avaliação; registrar a nota (0–10) recebida presencialmente, por telefone ou
+  WhatsApp; NPS e média por período.
+- **SDR IA**: desligada. Quando a direção decidir ligar, ela só sugere
+  rascunhos, que a pessoa revisa antes de enviar.
+
 ## Rotinas administrativas
 
 ### Entrada de pessoa

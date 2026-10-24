@@ -65,6 +65,14 @@ class Api {
     return request<T>(`/rest/v1/${table}?${query}`, { method: "GET" }, this.headers);
   }
 
+  insert<T>(table: string, values: Record<string, unknown>): Promise<ApiResult<T>> {
+    return request<T>(`/rest/v1/${table}`, {
+      method: "POST",
+      body: JSON.stringify(values),
+      headers: { Prefer: "return=representation" },
+    }, this.headers);
+  }
+
   update<T>(table: string, query: string, values: Record<string, unknown>): Promise<ApiResult<T>> {
     return request<T>(`/rest/v1/${table}?${query}`, {
       method: "PATCH",
@@ -113,6 +121,7 @@ export async function requireCaller(req: Request): Promise<Caller> {
 // Converte erro do PostgREST/Postgres em resposta HTTP sem detalhes internos.
 export function dbError(error: DbError | null, context: string): never {
   if (error?.code === "42501") throw new HttpError(403, "forbidden", error.message ?? "Sem permissão");
+  if (error?.code === "55000") throw new HttpError(503, "disabled", error.message ?? "Recurso desativado");
   if (error?.code === "23514" || error?.code === "22023" || error?.code === "23505") {
     throw new HttpError(400, "invalid_request", error.message ?? "Requisição inválida");
   }

@@ -7,7 +7,8 @@ de credenciais ou decisões externas.
 |---|---|---|
 | Trinks (migração de clientes por CSV) | **Implementada e testada na stack local** com arquivo fictício; formato real ainda não conferido | 2 |
 | E-mail transacional (convites) | Funciona na stack local (Mailpit); SMTP próprio no Cloud pendente | 0 |
-| WhatsApp | Não implementada | 4 |
+| WhatsApp (WhatsApp Business Platform / Cloud API) | **Implementado, bloqueado até credenciais oficiais.** Testado na stack local sem a Meta (webhook com segredos fictícios, recusas por falta de credencial); **nunca testado contra a Graph API real** | 4 |
+| SDR IA (sugestão de respostas, Anthropic) | **Implementada, desligada por padrão.** Testada só a recusa sem chave/IA desligada; **nunca chamada de verdade** | 4 |
 | Banco / adquirente | **Extrato por CSV implementado** (conciliação manual assistida); nenhuma API conectada | 3 |
 
 ## Trinks
@@ -65,17 +66,104 @@ Nada além de que é possível exportar clientes do Trinks em CSV. **Nenhuma API
 
 ## WhatsApp (Fase 4)
 
-Pré-requisitos antes de qualquer código:
+### Decisões
 
-- Uso da plataforma oficial do WhatsApp Business, diretamente ou por provedor
-  com contrato. Bibliotecas não oficiais que automatizam o WhatsApp Web estão
-  fora de questão (risco de bloqueio do número e de segurança).
-- Consentimento registrado do cliente para mensagens, com opção de saída.
-- Modelos de mensagem aprovados (confirmação, lembrete, cancelamento).
-- Segredos do provedor apenas em Edge Functions; webhooks com verificação de
-  assinatura.
-- Tabelas próprias (consentimento, fila de mensagens, registro de envio)
-  desenhadas e revisadas na fase.
+- Somente a **plataforma oficial** (WhatsApp Business Platform, Cloud API da
+  Meta). Bibliotecas que automatizam o WhatsApp Web estão fora de questão.
+- Um canal por unidade (`messaging_channels`), com número próprio. Os dados da
+  Geral e da VIP não se misturam: conversas, consentimento e modelos são por
+  unidade.
+- **Nenhuma credencial na aplicação ou no banco.** Tokens e segredos ficam
+  apenas nos segredos das Edge Functions:
+
+  | Segredo | Uso |
+  |---|---|
+  | `WHATSAPP_GRAPH_VERSION` | Versão da Graph API (ex.: `v23.0`; definir conforme a conta Meta — não presumida) |
+  | `WHATSAPP_ACCESS_TOKEN_GERAL`, `WHATSAPP_ACCESS_TOKEN_VIP` | Token permanente de usuário do sistema por unidade |
+  | `WHATSAPP_APP_SECRET` | Segredo do app (assinatura `X-Hub-Signature-256` do webhook) |
+  | `WHATSAPP_VERIFY_TOKEN` | Token de verificação do webhook (valor escolhido pela equipe) |
+
+  Sem eles as funções respondem **503** e nada é enviado. Na stack local,
+  `supabase/functions/.env` tem apenas valores **fictícios** de segredo do app
+  e token de verificação, para testar o webhook.
+
+### Ativação (bloqueada pelo banco)
+
+O canal só pode ficar `ativo` quando **todas** as marcas abaixo existirem — e
+elas são gravadas apenas pelo servidor (a aplicação não consegue marcá-las):
+
+1. Número (`phone_number_id`) e **texto de consentimento** cadastrados
+   (Mensagens → Configurar canal).
+2. **Credencial verificada**: a função `whatsapp-verify-channel` confirma na
+   Graph API que o token da unidade acessa o número.
+3. **Webhook verificado**: a Meta chama `whatsapp-webhook` com o token de
+   verificação correto.
+4. **Mensagem de teste** enviada com um modelo aprovado para um número da
+   equipe.
+
+Trocar o número ou a conta apaga as verificações e tira o canal de `ativo`.
+
+### Envio (`whatsapp-send`)
+
+O banco (`messaging_prepare_send`, com o JWT de quem envia) decide:
+
+| Situação | Resultado |
+|---|---|
+| Sem `messaging.send` ou sem acesso à conversa | Recusado (403) |
+| Canal não ativo | Recusado (503) |
+| Opt-out da finalidade | Recusado |
+| Marketing sem opt-in | Recusado |
+| Fora da janela de 24 h desde a última mensagem da cliente | Só modelo **aprovado**, e só com opt-in |
+| Dentro da janela, resposta de atendimento sem opt-out | Permitido |
+
+Modelos de mensagem são criados e aprovados no WhatsApp Manager da Meta e
+**cadastrados manualmente** na tela (mesmo nome e idioma). A situação
+"aprovado" é declarada por quem tem `messaging.manage`; a sincronização
+automática com a Meta não foi implementada.
+
+### Recebimento (`whatsapp-webhook`)
+
+- Assinatura HMAC-SHA256 verificada sobre o corpo bruto antes de qualquer
+  gravação; inválida → 401.
+- Mensagens recebidas criam/reabrem a conversa da unidade dona do número e são
+  ligadas à cliente pelo telefone normalizado. Reentregas (mesmo id) são
+  ignoradas.
+- Status de entrega (`sent`, `delivered`, `read`, `failed`) atualizam as
+  mensagens enviadas.
+- **Opt-out por palavra-chave**: `PARAR`, `SAIR`, `STOP`, `CANCELAR`,
+  `DESCADASTRAR` registram opt-out de atendimento e de marketing.
+
+### Pendências (dependem de credenciais ou decisões externas)
+
+- Conta WhatsApp Business verificada pela Meta, números de cada unidade,
+  app e usuário do sistema com token permanente.
+- Definir a versão da Graph API e configurar os quatro segredos no projeto de
+  desenvolvimento (`supabase secrets set`) — pedir confirmação antes.
+- Configurar na Meta a URL do webhook do projeto de desenvolvimento.
+- Criar e aprovar os modelos (confirmação, lembrete, retorno, pesquisa).
+- **Testar de ponta a ponta contra a Graph API** (verificação de credencial,
+  envio de teste, envio de texto e de modelo, status de entrega, webhook real).
+  Até isso acontecer, a integração **não está validada**.
+- Texto de consentimento revisado pela direção (e, se possível, por
+  assessoria jurídica — LGPD).
+- Mídia (imagens, áudios) recebida aparece como `[image]`/`[audio]`; download
+  de mídia não foi implementado.
+
+## SDR IA (Fase 4)
+
+- Função `sdr-draft`: gera **somente rascunho**; a pessoa revisa, edita e envia.
+  Nunca envia sozinha.
+- Desligada por padrão; ligar é decisão da Direção (`messaging.manage`), por
+  unidade, e fica auditado (quem e quando).
+- Dados enviados ao provedor (Anthropic, Messages API): primeiro nome, últimas
+  20 mensagens da conversa e lista de serviços da unidade (nome, duração,
+  preço). **Não** envia telefone, e-mail, CRM nem observações de atendimento.
+- Segredo `ANTHROPIC_API_KEY` só nas Edge Functions; modelo configurável em
+  `SDR_MODEL`. Sem chave → 503.
+- Pendências: decisão da direção sobre o tratamento de dados por terceiro
+  (LGPD: base legal, aviso às clientes, contrato/termos do provedor); criar a
+  chave em conta da empresa; testar a qualidade das sugestões com conversas
+  fictícias antes de ligar em uma unidade.
 
 ## Banco e adquirente
 

@@ -72,6 +72,11 @@ Stack:
   antes do `THEN` de um `IF`). Calcule o valor numa variável antes do `IF`.
 - Toda tabela nova que referencie `client_units` precisa ser incluída em
   `public.merge_clients` (que move o histórico da unidade na mescla).
+- Mensagens: credenciais do WhatsApp e da IA só em segredos de Edge Functions;
+  envio só por `whatsapp-send` (regras em `messaging_prepare_send`); marcas de
+  verificação do canal só pelo servidor; a aplicação e a IA criam apenas
+  rascunhos. Nunca ativar envio ou IA sem credenciais oficiais, consentimento e
+  testes (`docs/INTEGRATIONS.md`).
 - Clientes: nunca expor dados de outra unidade; busca entre unidades só por
   telefone/e-mail idênticos e com retorno mascarado (`find_client_candidates`).
 - `created_by`, `created_at` e `updated_at` são preenchidos pelo gatilho

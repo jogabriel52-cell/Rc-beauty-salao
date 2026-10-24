@@ -182,3 +182,12 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f1f2; }
 .totals { display: flex; flex-direction: column; gap: 8px; max-width: 420px; margin-left: auto; }
 .totals > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .totals .grand { font-size: 1.2rem; border-top: 1px solid var(--border); padding-top: 8px; }
+.thread { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; max-height: 55vh; overflow-y: auto; }
+.bubble { max-width: 75%; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+.bubble-in { align-self: flex-start; }
+.bubble-out { align-self: flex-end; background: var(--brand-soft); border-color: var(--brand); }
+.bubble-draft { align-self: flex-end; border-style: dashed; }
+.checklist { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.checklist li { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.score-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.score-row .btn { min-width: 40px; }

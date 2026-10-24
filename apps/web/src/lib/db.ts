@@ -66,3 +66,75 @@ export interface ClientRow {
 
 export const CLIENT_SELECT =
   "id, unit_id, service_notes, archived_at, created_at, client_identities!inner(id, full_name, phone, email, birth_date)";
+
+// Fase 4 — mensagens e relacionamento.
+export type MessagingChannel = Tables<"messaging_channels">;
+export type MessageTemplate = Tables<"message_templates">;
+export type ConsentEvent = Tables<"consent_events">;
+export type Conversation = Tables<"conversations">;
+export type Message = Tables<"messages">;
+export type Followup = Tables<"followups">;
+export type Survey = Tables<"surveys">;
+
+export const CHANNEL_STATUS: Record<string, string> = {
+  desativado: "Desativado",
+  configurado: "Configurado (não ativo)",
+  ativo: "Ativo",
+  suspenso: "Suspenso",
+};
+
+export const MESSAGE_STATUS: Record<string, string> = {
+  rascunho: "Rascunho",
+  na_fila: "Enviando",
+  enviada: "Enviada",
+  entregue: "Entregue",
+  lida: "Lida",
+  falhou: "Falhou",
+  recebida: "Recebida",
+  descartada: "Descartada",
+};
+
+export const PURPOSE: Record<string, string> = { atendimento: "Atendimento", marketing: "Marketing" };
+
+export const CONSENT_STATUS: Record<string, string> = {
+  opt_in: "Autorizou",
+  opt_out: "Pediu para não receber",
+  sem_registro: "Sem registro",
+};
+
+export const CONSENT_SOURCE: Record<string, string> = {
+  presencial: "Presencial (ficha/assinatura)",
+  whatsapp: "Pelo WhatsApp",
+  formulario: "Formulário",
+  palavra_chave: "Palavra-chave (PARAR/SAIR)",
+  outro: "Outro",
+};
+
+export const TEMPLATE_STATUS: Record<string, string> = {
+  rascunho: "Rascunho",
+  enviado_para_aprovacao: "Em aprovação na Meta",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+  pausado: "Pausado",
+};
+
+export const FOLLOWUP_KIND: Record<string, string> = {
+  retorno: "Retorno",
+  pos_atendimento: "Pós-atendimento",
+  reengajamento: "Reengajamento",
+  sdr: "Prospecção (SDR)",
+  outro: "Outro",
+};
+
+export const FOLLOWUP_STATUS: Record<string, string> = { aberto: "Aberto", feito: "Feito", cancelado: "Cancelado" };
+
+export const SURVEY_CHANNEL: Record<string, string> = {
+  presencial: "Presencial",
+  whatsapp: "WhatsApp",
+  telefone: "Telefone",
+  outro: "Outro",
+};
+
+export function consentTone(status: string): "success" | "danger" | "neutral" {
+  return status === "opt_in" ? "success" : status === "opt_out" ? "danger" : "neutral";
+}

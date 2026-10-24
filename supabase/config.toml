@@ -426,3 +426,15 @@ verify_jwt = false
 
 [functions.admin-set-user-status]
 verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = false
+
+[functions.whatsapp-verify-channel]
+verify_jwt = false
+
+[functions.sdr-draft]
+verify_jwt = false

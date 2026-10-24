@@ -66,6 +66,9 @@ supabase db push
 | `apps/web/e2e/phase2-import.spec.ts` | E2E | mapeamento a partir do arquivo, aprovação por outra pessoa, prévia, decisão de possível duplicidade, confirmação, nota de CRM, bloqueio de reimportação |
 | `supabase/tests/database/040_finance.test.sql` | pgTAP | acesso ao financeiro por papel e unidade, regras de lançamento (categoria × tipo, pago exige data/conta, valor pago imutável, cancelamento com motivo, sem DELETE, origem reservada), importação de extrato e bloqueio de repetição, sugestões, conciliação, criar a partir da linha, ignorar, desfazer, fluxo de caixa com/sem vendas, comissões (modelos 0,8/2 e 0,5/1,5, parâmetros a confirmar bloqueiam ativação, ninguém cria a própria, faixas imutáveis em plano ativo, meta obrigatória, apuração única, aprovação por outra pessoa, pagamento gera despesa, valor informado, progressiva, visibilidade própria) |
 | `apps/web/e2e/phase3-finance.spec.ts` | E2E | conta, lançamento, extrato CSV, conciliação, lançamento a partir da linha, fluxo de caixa; plano a partir de modelo, bloqueio por parâmetros a confirmar, ativação, meta, apuração, aprovação e pagamento por outra pessoa, vendedora vê a própria comissão |
+| `supabase/tests/database/050_messaging.test.sql` | pgTAP | canal nasce desativado, ativação exige verificações do servidor e consentimento, marcas não graváveis pela aplicação, troca de número zera verificações, ingestão (conversa, vínculo pelo telefone, status de entrega), janela de 24 h, modelo aprovado, opt-in/opt-out por finalidade, empate e data futura no consentimento, opt-out por palavra-chave, canal suspenso, só rascunhos pela aplicação, SDR IA (desligada, contexto mínimo, rascunho do servidor), conversa iniciada pelo salão (sem telefone, sem permissão, outra unidade), follow-ups (escopo próprio), pesquisas/NPS, inativas, mescla move consentimento/conversas/follow-ups |
+| `tests/integration/phase4-messaging.test.ts` | Integração (Edge Functions reais) | webhook: token de verificação, assinatura inválida/ausente recusada sem gravar, mensagem assinada liga à cliente, reentrega não duplica, PARAR = opt-out; `whatsapp-send`: 401, 503 com canal inativo, recusa por opt-out, 503 sem credencial com mensagem marcada como falha; `whatsapp-verify-channel`: 403 e 503; `sdr-draft`: 503 com IA desligada e sem chave, vendedora não liga a IA |
+| `apps/web/e2e/phase4-messaging.spec.ts` | E2E | Direção configura número e consentimento, verificação falha sem credencial e ativação continua bloqueada, cadastra modelo; Vendedora vê conversa, envio desabilitado, salva rascunho, registra consentimento na ficha; Gerente cria/conclui follow-up, gera reengajamento e registra avaliação com NPS |
 | `apps/web/src/**/*.test.ts` | Unitário | formatação, telefone, dinheiro, mensagens de erro, cálculo de permissões efetivas |
 | `tests/legacy/rls_phase1_baseline_test.sql` | SQL (histórico) | 70 asserções do modelo inicial (papéis fixos), preservadas como registro |
 
@@ -83,6 +86,10 @@ supabase db push
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 2 | typecheck, lint, 17 unitários (inclui leitura de CSV UTF-8/Windows-1252), build, bundle sem segredo, E2E 8/8 |
 | 2026-10-24 | 1 | Stack local oficial | Fase 3 | `supabase test db`: 264/264 (69 + 99 + 38 + 58); integração: 26/26 |
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 3 | typecheck, lint, 19 unitários (inclui valores/datas de extrato), build, bundle sem segredo, E2E 10/10 |
+| 2026-10-24 | 0 (preliminar) | PostgreSQL 16 + simulador do Auth | Fase 4 | `scripts/precheck-migrations.sh`: 6 migrações aplicadas (pgTAP indisponível nesse PostgreSQL) |
+| 2026-10-24 | 1 | Stack local oficial | Fase 4 | `supabase db reset` ok; `supabase test db`: 338/338 (69 + 99 + 38 + 58 + 74); integração: 38/38 (20 + 6 + 12) |
+| 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 4 | typecheck, lint, 19 unitários, build, bundle sem segredo, E2E 13/13 |
+| — | — | Graph API (Meta) e Messages API (Anthropic) | Fase 4 | **Não executado**: sem credenciais oficiais nem chave da IA |
 | — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
 
 ### Falhas encontradas e corrigidas na Fase 0
@@ -130,6 +137,17 @@ supabase db push
 | Pessoas de teste com o mesmo nome em execuções diferentes levavam a escolher a pessoa errada | E2E | nomes únicos por execução |
 | Apurações de execuções anteriores tornavam a linha ambígua | E2E | coluna "Plano" na apuração (também melhora a tela) |
 
+### Falhas encontradas e corrigidas na Fase 4
+
+| Falha | Como foi achada | Correção |
+|---|---|---|
+| Dois eventos de consentimento na mesma transação empatavam no horário e a situação ficava indefinida | pgTAP | coluna `seq` como desempate |
+| Um opt-in com data futura anularia opt-outs registrados depois (problema de segurança/LGPD) | pgTAP | datas futuras recusadas pelo gatilho |
+| Reentrega do webhook (mesmo id da Meta) contava de novo e repetia o opt-out | revisão do SQL | ignora mensagens já recebidas |
+| Faltava como iniciar conversa com cliente já cadastrada (follow-up, reengajamento) | revisão das telas | função `messaging_start_conversation` (sem envio) + testes |
+| Tela do canal recarregava e perdia a confirmação "Dados salvos" | E2E | não desmontar o formulário durante a recarga |
+| Seletor "Pesquisa" ambíguo com o diálogo aberto | E2E | aguardar o fechamento do diálogo e rótulo exato |
+
 ## Roteiro manual no Cloud de desenvolvimento (nível 2)
 
 Com um usuário de teste por perfil em cada unidade (e-mails controlados pela
@@ -145,6 +163,10 @@ equipe, nunca de clientes):
 | 6 | Direção | alterar o próprio vínculo/perfil | recusado |
 | 7 | Direção | desativar pessoa | corte imediato; login bloqueado |
 | 8 | qualquer | dois atendimentos sobrepostos do mesmo profissional | segundo recusado |
+| 9 | Direção | ativar o canal sem verificações | recusado |
+| 10 | sem assinatura | POST no `whatsapp-webhook` | 401, nada gravado |
+| 11 | Vendedora | enviar com canal inativo / para cliente com opt-out | recusado |
+| 12 | Recepção | abrir a caixa de entrada | sem acesso |
 
 ## Critério para "validado"
 

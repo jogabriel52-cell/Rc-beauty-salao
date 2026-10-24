@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useUnit } from "../../auth/AuthProvider";
 import { Alert, Badge, Button, PageHeader, SelectInput, Spinner, Tabs, TextArea, TextInput } from "../../components/ui";
 import { unwrap, useAction, useAsync } from "../../components/useAsync";
@@ -7,14 +7,19 @@ import { can } from "../../lib/access";
 import { APPOINTMENT_STATUS, CLIENT_SELECT, CRM_KIND, SALE_STATUS, type ClientRow } from "../../lib/db";
 import { formatDate, formatDateTime, formatMoney, formatPhone } from "../../lib/format";
 import { supabase } from "../../lib/supabase";
+import { ConsentPanel } from "../messaging/ConsentPanel";
+import { NewFollowupModal } from "../messaging/RelationshipPages";
 
-type Tab = "crm" | "agenda" | "comandas";
+type Tab = "crm" | "agenda" | "comandas" | "consentimento";
 
 export function ClientDetailPage() {
   const { id } = useParams();
   const unit = useUnit();
   const [tab, setTab] = useState<Tab>(can(unit, "crm.view") ? "crm" : "agenda");
   const [editing, setEditing] = useState(false);
+  const [followup, setFollowup] = useState(false);
+  const navigate = useNavigate();
+  const action = useAction();
 
   const client = useAsync(async () =>
     unwrap(await supabase.from("client_units").select(CLIENT_SELECT).eq("id", id!).eq("unit_id", unit.unit_id).single()) as unknown as ClientRow,
@@ -28,6 +33,15 @@ export function ClientDetailPage() {
   if (can(unit, "crm.view")) tabs.push({ value: "crm", label: "CRM" });
   if (can(unit, "appointments.view", "unit")) tabs.push({ value: "agenda", label: "Agendamentos" });
   if (can(unit, "sales.view", "unit")) tabs.push({ value: "comandas", label: "Comandas" });
+  if (can(unit, "consent.manage") || can(unit, "messaging.view")) tabs.push({ value: "consentimento", label: "Consentimento" });
+
+  async function openWhatsapp() {
+    let conv: string | null = null;
+    const ok = await action.run(async () => {
+      conv = unwrap(await supabase.rpc("messaging_start_conversation", { p_client_unit_id: c.id })) as string;
+    });
+    if (ok && conv) navigate(`/mensagens?c=${conv}`);
+  }
 
   return (
     <>
@@ -46,7 +60,11 @@ export function ClientDetailPage() {
           <div className="row">
             {can(unit, "clients.update") && <Button variant="secondary" onClick={() => setEditing(true)}>Editar</Button>}
             {can(unit, "clients.archive") && <ArchiveButton c={c} onDone={() => void client.reload()} />}
+            {can(unit, "followups.manage") && !c.archived_at && <Button variant="secondary" onClick={() => setFollowup(true)}>Novo follow-up</Button>}
+            {can(unit, "messaging.send") && c.client_identities.phone && !c.archived_at &&
+              <Button variant="secondary" busy={action.busy} onClick={() => void openWhatsapp()}>WhatsApp</Button>}
           </div>
+          <Alert kind="error">{action.error}</Alert>
           <p className="muted small">Nome e contato são compartilhados se a cliente também for atendida em outra unidade.
             Observações, CRM, agenda e comandas são desta unidade.</p>
         </section>
@@ -55,6 +73,8 @@ export function ClientDetailPage() {
       {tab === "crm" && can(unit, "crm.view") && <CrmTimeline clientUnitId={c.id} />}
       {tab === "agenda" && can(unit, "appointments.view", "unit") && <ClientAppointments clientUnitId={c.id} />}
       {tab === "comandas" && can(unit, "sales.view", "unit") && <ClientSales clientUnitId={c.id} />}
+      {tab === "consentimento" && <ConsentPanel clientUnitId={c.id} />}
+      {followup && <NewFollowupModal client={c} onClose={() => setFollowup(false)} onSaved={() => setFollowup(false)} />}
     </>
   );
 }

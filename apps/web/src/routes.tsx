@@ -20,6 +20,11 @@ const ReportsPage = page(() => import("./pages/ops/ReportsPage"), "ReportsPage")
 const ImportPage = page(() => import("./pages/ops/ImportPage"), "ImportPage");
 const FinancePage = page(() => import("./pages/finance/FinancePage"), "FinancePage");
 const CommissionsPage = page(() => import("./pages/finance/CommissionsPage"), "CommissionsPage");
+const InboxPage = page(() => import("./pages/messaging/InboxPage"), "InboxPage");
+const ChannelPage = page(() => import("./pages/messaging/ChannelPage"), "ChannelPage");
+const FollowupsPage = page(() => import("./pages/messaging/RelationshipPages"), "FollowupsPage");
+const ReengagementPage = page(() => import("./pages/messaging/RelationshipPages"), "ReengagementPage");
+const SurveysPage = page(() => import("./pages/messaging/RelationshipPages"), "SurveysPage");
 const AccountPage = page(() => import("./pages/AccountPage"), "AccountPage");
 const PeoplePage = page(() => import("./pages/admin/PeoplePage"), "PeoplePage");
 const AccessProfilesPage = page(() => import("./pages/admin/AccessProfilesPage"), "AccessProfilesPage");
@@ -46,4 +51,9 @@ export const routes = [
   <Route key="importacao" path="importacao" element={wrap(<ImportPage />)} />,
   <Route key="financeiro" path="financeiro" element={wrap(<FinancePage />)} />,
   <Route key="comissoes" path="comissoes" element={wrap(<CommissionsPage />)} />,
+  <Route key="mensagens" path="mensagens" element={wrap(<InboxPage />)} />,
+  <Route key="canal" path="mensagens/canal" element={wrap(<ChannelPage />)} />,
+  <Route key="follow-ups" path="follow-ups" element={wrap(<FollowupsPage />)} />,
+  <Route key="reengajamento" path="reengajamento" element={wrap(<ReengagementPage />)} />,
+  <Route key="pesquisas" path="pesquisas" element={wrap(<SurveysPage />)} />,
 ];

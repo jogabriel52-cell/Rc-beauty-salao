@@ -47,6 +47,13 @@ atualiza a documentação. Situação atual de cada fase no fim deste arquivo.
   pesquisa de satisfação e reengajamento de clientes inativas.
 - Mensagens só podem ser ativadas com credenciais oficiais, consentimento e
   testes.
+- Implementado: canal por unidade com checklist de ativação travado no banco;
+  caixa de entrada com rascunhos, atribuição e encerramento; modelos de
+  mensagem; consentimento por finalidade na ficha da cliente; opt-out por
+  palavra-chave; follow-ups (próprios ou da unidade); reengajamento de inativas;
+  pesquisa de satisfação com NPS; SDR IA (rascunhos) desligada por padrão.
+- Depende de fora: credenciais oficiais da Meta, teste real contra a Graph API,
+  chave da IA e decisões de LGPD (`INTEGRATIONS.md`, `SECURITY_REVIEW.md` P23–P29).
 
 ## Regras gerais
 
@@ -65,4 +72,4 @@ atualiza a documentação. Situação atual de cada fase no fim deste arquivo.
 | 1 | Implementada | Stack local oficial: pgTAP, integração com usuários reais, E2E. Cloud: pendente. |
 | 2 | Implementada (formato real do Trinks a conferir) | Stack local oficial: pgTAP, E2E com CSV fictício. Cloud: pendente. |
 | 3 | Implementada (parâmetros de comissão a confirmar; extratos por CSV) | Stack local oficial: pgTAP, E2E. Cloud: pendente. |
-| 4 | Não iniciada | — |
+| 4 | Implementada; **envio bloqueado** até credenciais oficiais; SDR IA desligada | Stack local oficial: pgTAP, integração (webhook com segredos fictícios, recusas sem credencial), E2E. **Graph API e IA nunca chamadas de verdade.** Cloud: pendente. |
