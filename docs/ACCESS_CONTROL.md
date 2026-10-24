@@ -136,6 +136,42 @@ Valores iniciais; a direção pode alterá-los em Perfis de acesso.
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | `access.manage` — pessoas e acessos | U | U | | | | | |
 | `audit.view` — auditoria | U | U | U | | | | |
+| `clients.view` — cadastro de clientes | U | U | U | U | U | | U |
+| `clients.create` — cadastrar/vincular | U | U | U | U | U | | |
+| `clients.update` — editar cadastro e observações de atendimento | U | U | U | U | U | | |
+| `clients.archive` — arquivar | U | U | U | | | | |
+| `clients.merge` — revisar duplicidades | U | U | U | | | | |
+| `crm.view` — notas privadas e histórico | U | U | U | U | U | | |
+| `crm.write` — registrar CRM | U | U | U | U | | | |
+| `services.view` / `services.manage` | U / U | U / U | U / U | U / – | U / – | U / – | U / – |
+| `professionals.view` / `professionals.manage` | U / U | U / U | U / U | U / – | U / – | U / – | U / – |
+| `appointments.view` — agenda | U | U | U | U | U | **P** | U |
+| `appointments.create` / `update` / `cancel` | U | U | U | U | U | | |
+| `sales.view` — comandas | U | U | U | **P** | U | | U |
+| `sales.open` / `edit` / `finalize` | U | U | U | | U | | |
+| `sales.cancel` — cancelar (estorna estoque) | U | U | U | | | | |
+| `stock.view` / `stock.manage` | U / U | U / U | U / U | | U / – | | U / – |
+| `dashboard.view` — painel | U | U | U | | U | | U |
+| `reports.view` — relatórios | U | U | U | | | | U |
 
-As permissões dos módulos operacionais, financeiros e de mensagens são
-acrescentadas a esta matriz nas seções das fases correspondentes.
+Escopo **P** (próprio):
+
+- `appointments.view` P: só agendamentos em que a pessoa é o profissional. O
+  nome da cliente e as observações de atendimento chegam pela função
+  `get_my_agenda`; telefone, e-mail e CRM não.
+- `sales.view` P: só comandas que a pessoa abriu, vendeu ou finalizou.
+
+## Clientes: o que cada unidade enxerga
+
+| Dado | Onde fica | Quem vê |
+|---|---|---|
+| Nome, telefone, e-mail, nascimento | `client_identities` (única) | Quem tem `clients.view` em **alguma unidade vinculada** à cliente |
+| Observações de atendimento | `client_units` (por unidade) | `clients.view` na unidade; profissional na própria agenda |
+| Notas privadas e histórico de CRM | `crm_interactions` (por unidade) | `crm.view` na unidade |
+| Agenda e comandas | por unidade | permissões da unidade |
+| Existência em outra unidade | `find_client_candidates` | Só por telefone/e-mail idênticos, com nome e telefone mascarados |
+
+A edição de nome/contato por uma unidade vale para as demais unidades
+vinculadas (é a mesma identidade) e fica registrada na auditoria.
+
+As permissões financeiras e de mensagens são acrescentadas nas fases 3 e 4.

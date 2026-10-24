@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { completeMfaEnrollment, createPerson, latestMailLink, login, testEmail } from "./support";
+import { completeMfaEnrollment, createPerson, latestMailLink, login, run, testEmail } from "./support";
 
 test.describe("Fase 0 — acesso", () => {
   test("Recepção entra e não vê administração", async ({ page }) => {
     const recep = await createPerson("e2e-recep", [{ unit: "geral", profile: "recepcao" }]);
     await login(page, recep.email);
-    await expect(page.getByRole("heading", { name: /Olá/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Painel" })).toBeVisible();
     await expect(page.getByLabel("Unidade ativa")).toHaveValue(/.+/);
     await expect(page.getByRole("link", { name: "Pessoas e acessos" })).toHaveCount(0);
     await page.goto("/configuracoes/pessoas");
@@ -23,14 +23,14 @@ test.describe("Fase 0 — acesso", () => {
     await page.getByRole("link", { name: "Pessoas e acessos" }).click();
     await page.getByRole("button", { name: "Convidar pessoa" }).click();
     const dialog = page.getByRole("dialog", { name: "Convidar pessoa" });
-    await dialog.getByLabel("Nome completo").fill("Convidada E2E");
+    await dialog.getByLabel("Nome completo").fill(`Convidada ${run}`);
     await dialog.getByLabel("E-mail").fill(email);
     await dialog.getByLabel("Cargo (opcional)").fill("Manicure");
     await dialog.getByLabel("RC Beauty Geral").selectOption({ label: "Profissional" });
     await dialog.getByRole("button", { name: "Enviar convite" }).click();
     await expect(dialog.getByText("Convite enviado por e-mail.")).toBeVisible();
     await dialog.getByRole("button", { name: "Concluir" }).click();
-    const row = page.getByRole("row", { name: /Convidada E2E/ });
+    const row = page.getByRole("row", { name: new RegExp(`Convidada ${run}`) });
     await expect(row.getByText("Convite pendente")).toBeVisible();
 
     // Convidada aceita o convite e define a senha
@@ -41,11 +41,11 @@ test.describe("Fase 0 — acesso", () => {
     await guest.getByLabel("Nova senha").fill("SenhaNova12345");
     await guest.getByLabel("Confirmar senha").fill("SenhaNova12345");
     await guest.getByRole("button", { name: "Salvar senha" }).click();
-    await expect(guest.getByRole("heading", { name: /Olá, Convidada/ })).toBeVisible();
+    await expect(guest.getByRole("heading", { name: "Minha agenda" })).toBeVisible();
 
     // Exceção individual
     await row.getByRole("button", { name: "Abrir" }).click();
-    const person = page.getByRole("dialog", { name: "Convidada E2E" });
+    const person = page.getByRole("dialog", { name: `Convidada ${run}` });
     await person.getByLabel("Permissão").selectOption("audit.view");
     await person.getByLabel("Motivo").first().fill("Acompanhar alterações");
     await person.getByRole("button", { name: "Adicionar exceção" }).click();

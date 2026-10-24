@@ -10,6 +10,7 @@ export async function login(page: Page, email: string) {
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page).not.toHaveURL(/\/entrar/);
 }
 
 // Conclui o cadastro de MFA pela interface; retorna o segredo TOTP.

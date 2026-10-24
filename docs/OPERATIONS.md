@@ -1,121 +1,143 @@
 # Operação
 
-Regras de negócio da Fase 1 e rotinas administrativas. Regras marcadas com
-**(banco)** são impostas pela migração; as demais são da aplicação ou de
-processo.
+Regras de negócio e rotinas. **(banco)** = imposto pelo banco; o restante é
+da interface ou de processo.
 
 ## Unidades
 
-- **RC Beauty Geral** (`geral`) e **Sala VIP** (`vip`) são operadas como
-  unidades separadas: cada uma tem seus clientes, profissionais, serviços e
-  agenda **(banco)**.
-- Um funcionário que atua nas duas unidades tem dois vínculos, um em cada,
-  possivelmente com papéis diferentes.
+- **RC Beauty Geral** (`geral`) e **Sala VIP** (`vip`) operam separadas:
+  profissionais, serviços, agenda, comandas, estoque, notas e CRM por unidade
+  **(banco)**.
+- Uma pessoa da equipe que atua nas duas unidades tem um vínculo em cada, com o
+  perfil adequado a cada uma.
 - Um profissional que atende nas duas unidades tem um cadastro de profissional
-  em cada unidade. Conflitos de horário entre unidades **não** são detectados
-  nesta fase (pendência para a Fase 2, junto com a jornada de profissionais).
+  em cada; conflitos de horário **entre** unidades não são detectados (pendência).
 
 ## Clientes
 
-- Cadastro mínimo: nome completo. Telefone recomendado, armazenado só com
-  dígitos e opcionalmente `+`, de 8 a 15 dígitos **(banco)**. A aplicação
-  normaliza para o formato `55DDDNÚMERO` antes de gravar.
-- Antes de criar, a aplicação busca por telefone e nome na unidade e mostra
-  possíveis duplicados.
-- Observações: até 2000 caracteres **(banco)**. Não registrar dados de saúde
-  sensíveis além do necessário ao atendimento (ex.: alergia a um produto), e
-  nunca documentos (CPF, RG) nesta fase.
-- Clientes não são apagados: são **arquivados** **(banco)**. Cliente arquivado
-  não aparece na busca padrão, mas o histórico de agendamentos permanece.
+- **Identidade única**: nome, telefone, e-mail e nascimento são um cadastro só,
+  usado por todas as unidades em que a cliente é atendida.
+- **Vínculo por unidade**: observações de atendimento, CRM, agenda e comandas
+  pertencem à unidade. Acesso a uma unidade não libera nada da outra **(banco)**.
+- Telefone gravado só com dígitos e DDI (`55DDDNÚMERO`) **(banco)**.
+- Antes de cadastrar, o sistema procura possíveis duplicidades:
+  - **nesta unidade**: por nome, telefone ou e-mail;
+  - **em outra unidade**: somente por telefone ou e-mail idênticos, mostrando
+    apenas primeiro nome + inicial e os 4 últimos dígitos do telefone **(banco)**.
+- A recepção escolhe: usar o cadastro desta unidade, **vincular** o cadastro de
+  outra unidade (exige o mesmo telefone ou e-mail) ou criar um novo. Nada é
+  mesclado automaticamente.
+- **Observações de atendimento** (ex.: alergia) são vistas pelo profissional na
+  própria agenda. **Notas privadas** vão no CRM e o profissional não vê.
+- Clientes não são apagados: são arquivados **(banco)**.
 
-## Serviços
+### Revisão de duplicidades (Gerente, Direção, Admin Geral)
 
-- Nome único por unidade entre serviços ativos **(banco)**.
-- Duração de 5 a 720 minutos; preço em centavos, opcional **(banco)**.
-- Serviço desativado não aparece para novos agendamentos, mas continua nos
-  agendamentos antigos.
+- Tela **Possíveis duplicidades**: pares da unidade com mesmo telefone, mesmo
+  e-mail ou mesmo nome.
+- **Mesclar**: escolhe o cadastro mantido; agenda, comandas e CRM da unidade
+  passam para ele; o outro é arquivado com referência; campos vazios são
+  completados **(banco)**. Outras unidades não são alteradas.
+- **Não é duplicidade**: registra o motivo e o par sai da lista.
+
+## CRM
+
+- Registros (nota, ligação, WhatsApp, visita, e-mail, outro) por cliente e
+  unidade, somente inclusão — correções são novos registros **(banco)**.
+- Vendedoras registram; Recepção consulta; Profissional não vê (perfis
+  iniciais, editáveis).
 
 ## Agenda
 
-- Horários gravados em `timestamptz`, exibidos em `America/Sao_Paulo`.
-- Um agendamento tem cliente, profissional e serviço **da mesma unidade**
-  **(banco)**. Duração máxima de 12 horas **(banco)**.
-- A aplicação sugere o horário de término a partir da duração do serviço;
-  a recepção pode ajustar.
-- Um profissional não pode ter dois agendamentos ativos sobrepostos
-  **(banco)**. Mensagem ao usuário: "Este profissional já tem atendimento nesse
-  horário."
+- Horários em `timestamptz`, exibidos em `America/Sao_Paulo` (UTC−3, sem
+  horário de verão desde 2019).
+- Cliente, profissional e serviço da mesma unidade **(banco)**; até 12 horas.
+- Um profissional não tem dois atendimentos ativos sobrepostos **(banco)**;
+  horários encostados são permitidos.
 
-### Status
+### Situações
 
 ```
 agendado ──► confirmado ──► concluido
    │             │
-   │             ├──► nao_compareceu
-   └─────────────┴──► cancelado (final, exige motivo)
+   ├─────────────┼──► nao_compareceu
+   └─────────────┴──► cancelado (exige motivo)
 ```
 
-- `cancelado` exige motivo e é definitivo; para remarcar após cancelar, criar
-  novo agendamento **(banco)**.
-- Cancelado e não comparecimento liberam o horário para outro agendamento
+- Concluído, não compareceu e cancelado são finais; confirmado não volta para
+  agendado **(banco)**.
+- Quem cancelou e quando ficam registrados **(banco)**.
+- Do agendamento é possível **abrir comanda** já com o serviço e o profissional.
+
+## Comandas
+
+- Numeração sequencial por unidade **(banco)**.
+- Registram **quem abriu** (automático), **quem vendeu** (escolhido entre as
+  pessoas ativas da unidade; se vazio, quem abriu) e **quem finalizou**
+  (automático) **(banco)**.
+- Itens de serviço (com profissional) e de produto; preço e descrição vêm do
+  cadastro e podem ser ajustados enquanto a comanda está aberta.
+- Desconto por item e por comanda; total calculado pelo banco **(banco)**.
+- **Finalizar** exige ao menos um item e pagamentos que somem exatamente o
+  total; baixa o estoque dos produtos **(banco)**.
+- Comanda finalizada não é editada; para corrigir, **cancelar** (com motivo; o
+  estoque volta) e abrir outra **(banco)**.
+- Formas de pagamento: dinheiro, Pix, débito, crédito (com parcelas), voucher,
+  outro.
+
+## Estoque
+
+- Saldo = soma dos movimentos; movimentos não são editados nem apagados
   **(banco)**.
-- Quem cancelou e quando são registrados automaticamente **(banco)**.
-- A aplicação deve impedir transições sem sentido (ex.: `concluido` →
-  `agendado`) na interface; o banco hoje só impõe as regras do cancelamento.
+- Entradas, saídas e ajustes manuais (saída e ajuste exigem motivo); baixas e
+  estornos de venda só pelas comandas **(banco)**.
+- Venda pode deixar saldo negativo (registro de estoque atrasado não trava o
+  caixa); o painel destaca produtos abaixo do mínimo.
+
+## Painel e relatórios
+
+- **Painel** (dashboard.view): agenda do dia, vendas do dia e do mês, comandas
+  abertas, serviços mais vendidos, estoque baixo, clientes novas no mês — cada
+  bloco só aparece se o perfil tiver a permissão correspondente **(banco)**.
+- **Relatórios** (reports.view): faturamento, ticket médio, por vendedor(a),
+  serviços por profissional, formas de pagamento, por dia, itens vendidos,
+  atendimentos por profissional.
 
 ## Rotinas administrativas
 
-### Entrada de funcionário
+### Entrada de pessoa
 
-1. Admin Geral convida pela tela de administração (e-mail, nome, unidade(s),
-   papel).
-2. Se for profissional, cadastrar o profissional na unidade e ligar ao usuário.
-3. Conferir com o funcionário o primeiro acesso.
+1. Direção/Admin Geral convida em **Pessoas e acessos** (nome, e-mail, cargo,
+   unidades, perfil).
+2. Se for profissional, cadastrar em **Profissionais** e ligar ao usuário.
+3. Perfis com MFA: acompanhar o primeiro acesso.
 
 ### Saída ou afastamento
 
-1. Desativar o usuário no mesmo dia, com motivo.
-2. Desativar o cadastro de profissional, se houver, depois de redistribuir os
-   agendamentos futuros.
+1. Desativar a pessoa no mesmo dia, com motivo.
+2. Desativar o cadastro de profissional depois de redistribuir a agenda futura.
 
-### Revisão mensal de acessos (Admin Geral)
+### Revisão mensal de acessos
+
+Tela **Auditoria** (concessões) e **Pessoas e acessos**. Consulta equivalente:
 
 ```sql
--- Vínculos ativos por unidade
-select u.name as unidade, p.full_name, m.role, m.created_at
+select u.name as unidade, p.full_name, ap.name as perfil, m.active
 from public.unit_memberships m
 join public.profiles p on p.id = m.user_id
 join public.units u on u.id = m.unit_id
-where m.active and p.active
-order by u.name, m.role, p.full_name;
+join public.access_profiles ap on ap.id = m.access_profile_id
+order by u.name, ap.name, p.full_name;
 
--- Exceções individuais vigentes
-select u.name as unidade, p.full_name, o.permission_code, o.effect, o.reason, o.created_at
+select u.name, p.full_name, o.permission_code, o.effect, o.scope, o.reason
 from public.membership_permission_overrides o
 join public.unit_memberships m on m.id = o.membership_id
 join public.profiles p on p.id = m.user_id
-join public.units u on u.id = m.unit_id
-order by u.name, p.full_name;
-
--- Admins Gerais
-select p.full_name, p.active, pa.created_at
-from public.platform_admins pa join public.profiles p on p.id = pa.user_id;
+join public.units u on u.id = m.unit_id;
 ```
 
-Remover exceções que deixaram de ser necessárias; preferir ajustar o papel.
+### Backup e incidentes
 
-### Backup e restauração
-
-- Definir, antes de dados reais, a frequência de backup e testar uma
-  restauração em projeto separado (pendência P7).
-- Exportações manuais (`pg_dump`) contêm dados pessoais: armazenar
-  criptografadas, fora do repositório, com acesso restrito e prazo de descarte.
-
-### Incidentes
-
-- Suspeita de acesso indevido: desativar a conta envolvida, consultar
-  `audit_log` pelo período e preservar os registros.
-- Suspeita de vazamento de chave: rotacionar a chave no painel do Supabase e
-  revisar os logs.
-- Registrar o incidente, a causa e as ações tomadas. Avaliar obrigação de
-  comunicação prevista na LGPD com o responsável jurídico.
+- Definir backup e testar restauração antes de dados reais (pendência P7).
+- Suspeita de acesso indevido: desativar a conta, consultar a auditoria,
+  preservar registros. Suspeita de vazamento de chave: revogar e investigar.

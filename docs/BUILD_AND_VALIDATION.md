@@ -59,6 +59,9 @@ supabase db push
 | `supabase/tests/database/010_access_model.test.sql` | pgTAP | perfis editáveis, escopos, MFA (aal1/aal2), anti-escalada, autoproteção, proteção do Admin Geral, desativação, auditoria, estrutura (RLS, grants, search_path) |
 | `tests/integration/phase0-access.test.ts` | Integração (Vitest + Auth real) | login, MFA TOTP, encerramento de outras sessões, convite com e-mail (Mailpit), 401/403/409/400, desativação com corte imediato e bloqueio de login, reativação |
 | `apps/web/e2e/phase0-access.spec.ts` | E2E (Playwright) | entrada da Recepção, cadastro de MFA da Direção, convite, aceite do convite e definição de senha, exceção individual, desativação, bloqueio do próprio perfil |
+| `supabase/tests/database/020_operations.test.sql` | pgTAP | identidade única + vínculo por unidade, busca mascarada entre unidades, vínculo com prova de telefone/e-mail, CRM por unidade e somente inclusão, duplicidades e mescla, profissional sem acesso a cadastro/CRM e agenda própria com dados mínimos, agenda (conflito, transições, cancelamento, exceções), comandas (numeração, quem abriu/vendeu/finalizou, totais, pagamentos, finalização, cancelamento com estorno), estoque, painel, relatórios, usuário inativo, MFA. Inclui as verificações equivalentes às 70 do modelo inicial |
+| `tests/integration/phase1-operations.test.ts` | Integração | isolamento de clientes pela API, vínculo entre unidades mascarado, agenda do profissional sem telefone, comanda completa com baixa de estoque, escopo próprio da vendedora |
+| `apps/web/e2e/phase1-operations.spec.ts` | E2E | Recepção agenda nova cliente, confirma, abre e finaliza comanda; Profissional vê só a própria agenda; VIP vincula cadastro mascarado; Gerente mescla duplicidade; Gerente cadastra serviço/produto, lança estoque, vê painel e relatórios |
 | `apps/web/src/**/*.test.ts` | Unitário | formatação, telefone, dinheiro, mensagens de erro, cálculo de permissões efetivas |
 | `tests/legacy/rls_phase1_baseline_test.sql` | SQL (histórico) | 70 asserções do modelo inicial (papéis fixos), preservadas como registro |
 
@@ -70,6 +73,8 @@ supabase db push
 | 2026-10-24 | 1 | Supabase CLI 2.122.0, PostgreSQL 17.11 (stack local oficial) | 31d01c2 (modelo inicial) | Mesmas 70 asserções passaram |
 | 2026-10-24 | 1 | Stack local oficial | Fase 0 | `supabase db reset` ok; `supabase test db`: 69/69; integração: 20/20; bootstrap ok e recusa na repetição |
 | 2026-10-24 | 3 | Stack local oficial + Vite + Chromium (Playwright 1.63) | Fase 0 | typecheck, lint, 12 unitários, build, bundle sem segredo, E2E 3/3 |
+| 2026-10-24 | 1 | Stack local oficial | Fase 1 | `supabase db reset` ok; `supabase test db`: 168/168 (69 + 99); integração: 26/26 |
+| 2026-10-24 | 3 | Stack local oficial + Vite + Chromium | Fase 1 | typecheck, lint, 12 unitários, build sem aviso de tamanho, bundle sem segredo, E2E 7/7 |
 | — | 2 | Cloud de desenvolvimento | — | **Não executado**: referência do projeto Cloud da RC Beauty não informada |
 
 ### Falhas encontradas e corrigidas na Fase 0
@@ -83,6 +88,17 @@ supabase db push
 | `[auth.email] enable_signup = false` desligava o login por e-mail | integração | manter `true`; bloqueio de cadastro é `[auth] enable_signup = false` |
 | Edge Runtime local não baixava `supabase-js` (CA do proxy do ambiente) | integração | funções reescritas sem dependências (somente `fetch`) |
 | Corpo validado antes da autenticação (400 em vez de 401) | integração | autenticar primeiro |
+
+### Falhas encontradas e corrigidas na Fase 1
+
+| Falha | Como foi achada | Correção |
+|---|---|---|
+| Teste de auditoria de modelos contava registros gerados pela própria migração | pgTAP | filtrar pelo ator |
+| Painel somava comandas com condição redundante | revisão do SQL | condição simplificada |
+| Tela inicial mudou (Painel/Minha agenda) e testes E2E da Fase 0 esperavam a saudação | E2E | testes atualizados |
+| Produto escolhido por posição na lista pegava produto de outra execução | E2E | nomes únicos por execução e seleção pelo nome |
+| Segunda página E2E navegava antes de o login concluir | E2E | `login()` aguarda sair de `/entrar` |
+| Pacote principal de 524 KB | build | rotas sob demanda e pacotes de terceiros separados |
 
 ## Roteiro manual no Cloud de desenvolvimento (nível 2)
 

@@ -62,7 +62,7 @@ atualiza a documentação. Situação atual de cada fase no fim deste arquivo.
 | Fase | Situação | Validação |
 |---|---|---|
 | 0 | Implementada | Stack local oficial: pgTAP, integração com usuários reais, E2E. Cloud de desenvolvimento: **pendente** (referência do projeto não informada). |
-| 1 | Em andamento | — |
+| 1 | Implementada | Stack local oficial: pgTAP, integração com usuários reais, E2E. Cloud: pendente. |
 | 2 | Não iniciada | — |
 | 3 | Não iniciada | — |
 | 4 | Não iniciada | — |

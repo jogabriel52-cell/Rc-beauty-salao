@@ -166,3 +166,19 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f1f2; }
   .hide-mobile { display: none; }
   .details { grid-template-columns: 1fr; }
 }
+
+/* Fase 1 */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.clickable { cursor: pointer; }
+.clickable:hover td { background: #fcf7f9; }
+.picker { position: relative; }
+.picker-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 10; list-style: none; margin: 4px 0 0; padding: 4px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); max-height: 260px; overflow-y: auto; }
+.picker-list button { width: 100%; text-align: left; background: none; border: none; padding: 8px; cursor: pointer; font: inherit; border-radius: 6px; }
+.picker-list button:hover { background: var(--brand-soft); }
+.timeline { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.timeline li { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--brand); border-radius: 8px; padding: 10px 12px; }
+.pre { white-space: pre-wrap; }
+.totals { display: flex; flex-direction: column; gap: 8px; max-width: 420px; margin-left: auto; }
+.totals > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.totals .grand { font-size: 1.2rem; border-top: 1px solid var(--border); padding-top: 8px; }

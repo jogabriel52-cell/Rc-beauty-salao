@@ -12,7 +12,11 @@ Sistema em construção por fases (`docs/PHASE_PLAN.md`). Situação:
   escopo por módulo/ação, exceções individuais, MFA obrigatório para Admin
   Geral e Direção, convite e desativação por Edge Functions, auditoria de
   concessões, telas de pessoas, perfis e auditoria.
-- Fases 1 a 4: em andamento/não iniciadas.
+- **Fase 1 — operação diária: implementada.** Clientes com identidade única e
+  vínculo por unidade, CRM por unidade, revisão de duplicidades, serviços,
+  profissionais, agenda (profissional vê só a própria), comandas com quem
+  abriu/vendeu/finalizou, estoque, painel e relatórios.
+- Fases 2 a 4: em andamento/não iniciadas.
 
 Validação feita até aqui (detalhes em `docs/BUILD_AND_VALIDATION.md`):
 

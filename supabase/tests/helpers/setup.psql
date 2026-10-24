@@ -9,7 +9,7 @@ create schema tests;
 grant usage on schema tests to authenticated, anon;
 
 create temp table test_ids (k text primary key, v uuid not null);
-grant select on test_ids to authenticated, anon;
+grant select, insert on test_ids to authenticated, anon;
 
 create function tests.id(p_key text) returns uuid language sql stable as $$
   select v from test_ids where k = p_key

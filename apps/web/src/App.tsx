@@ -3,11 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { Button, Spinner } from "./components/ui";
 import { AppShell } from "./layout/AppShell";
-import { AccountPage } from "./pages/AccountPage";
 import { HomePage } from "./pages/HomePage";
-import { AccessProfilesPage } from "./pages/admin/AccessProfilesPage";
-import { AuditPage } from "./pages/admin/AuditPage";
-import { PeoplePage } from "./pages/admin/PeoplePage";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { MfaPage } from "./pages/auth/MfaPage";
 import { SetPasswordPage } from "./pages/auth/SetPasswordPage";
@@ -42,10 +38,6 @@ export function App() {
           <Route path="/definir-senha" element={<SetPasswordPage />} />
           <Route element={<Protected><AppShell /></Protected>}>
             <Route index element={<HomePage />} />
-            <Route path="conta" element={<AccountPage />} />
-            <Route path="configuracoes/pessoas" element={<PeoplePage />} />
-            <Route path="configuracoes/perfis" element={<AccessProfilesPage />} />
-            <Route path="auditoria" element={<AuditPage />} />
             {moduleRoutes}
             <Route path="*" element={<p>Página não encontrada.</p>} />
           </Route>

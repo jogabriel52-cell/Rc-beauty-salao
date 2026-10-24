@@ -3,86 +3,106 @@
 ## Visão geral
 
 ```
- Navegador (React + TS + Vite)
-   │  chave publicável + JWT do usuário
+ Navegador (React + TypeScript + Vite, apps/web)
+   │  chave publicável + JWT do usuário (sessão aal1/aal2)
    ▼
  Supabase
-   ├── Auth ............ login, convites, sessões (cadastro público desativado)
+   ├── Auth ............ login por convite, MFA TOTP, sessões
    ├── Data API ........ PostgREST sobre o schema public
    │      └── PostgreSQL: RLS + funções de autorização + gatilhos + auditoria
-   └── Edge Functions .. operações que exigem a chave secreta ou lógica de servidor
-          (convite, desativação, importação Trinks)
+   └── Edge Functions .. operações que exigem a chave secreta (convite, ativação/desativação)
 ```
 
 - O frontend fala diretamente com a Data API usando o JWT do usuário. Toda
-  decisão de acesso acontece no PostgreSQL, por RLS.
-- Edge Functions existem apenas onde o banco sozinho não basta: chamadas à API
-  administrativa do Auth (`auth.admin.*`) e processamento de arquivos. Elas
-  validam o JWT do chamador e, sempre que possível, gravam no banco **com o JWT
-  do chamador**, para que RLS e auditoria registrem o ator real.
-- Não há servidor de aplicação próprio nesta fase.
+  decisão de acesso acontece no PostgreSQL.
+- Regras de negócio que precisam ser garantidas (finalização de comanda,
+  baixa de estoque, mescla de clientes, transições de agenda) estão em gatilhos
+  e funções do banco, não na interface.
+- Edge Functions só onde o banco não basta (`auth.admin`). Elas validam o JWT
+  do chamador e gravam com o JWT dele para que RLS e auditoria registrem o ator
+  real. São escritas sem dependências externas.
+- Não há servidor de aplicação próprio.
 
-## Modelo de dados da Fase 1
+## Migrações
+
+| Arquivo | Conteúdo |
+|---|---|
+| `20261024000000_phase1_core.sql` | Modelo inicial (unidades, perfis, auditoria, agenda básica). Mantido como histórico; evoluído pelas seguintes. |
+| `20261025000000_phase0_access_model.sql` | Perfis de acesso editáveis, escopo, exceções, MFA, anti-escalada, autoproteção. |
+| `20261026000000_phase1_operations.sql` | Clientes (identidade + vínculo), CRM, duplicidades, agenda, comandas, estoque, painel, relatórios. |
+
+## Modelo de dados
+
+### Acesso (Fase 0)
 
 ```
-units ─┬─< unit_memberships >── profiles ──(1:1)── auth.users
-       │         └─< membership_permission_overrides >── permissions
-       │                                                     │
-       │                               role_permissions >────┘
-       ├─< professionals (user_id → profiles, opcional)
-       ├─< services
-       ├─< clients
-       └─< appointments ── (client_id, unit_id) → clients
-                         ── (professional_id, unit_id) → professionals
-                         ── (service_id, unit_id) → services
-platform_admins ── profiles
-audit_log (gravado por gatilho em todas as tabelas acima)
+auth.users ──1:1── profiles ──< unit_memberships >── units
+                       │              │
+             platform_admins          ├── access_profiles ──< access_profile_permissions >── permissions
+                                      └──< membership_permission_overrides >── permissions
+audit_log (gatilho em todas as tabelas de negócio)
 ```
 
-Detalhes e justificativas:
+### Operação (Fase 1)
 
-- **Unidade como fronteira de dados.** Cliente, profissional, serviço e
-  agendamento pertencem a uma unidade. As chaves estrangeiras compostas
-  impedem um agendamento da Sala VIP que referencie um cliente da Geral, mesmo
-  por erro de código.
-- **Clientes não são compartilhados entre unidades** nesta fase. A mesma pessoa
-  pode ter um cadastro em cada unidade. Unificação exige decisão de negócio e
-  de privacidade (ver pendências em `SECURITY_REVIEW.md`).
-- **Conflito de horário** do mesmo profissional é impedido por restrição de
-  exclusão (`btree_gist`) para status ativos (`agendado`, `confirmado`,
-  `concluido`). Horários encostados (fim de um = início do outro) são permitidos.
-- **Auditoria** guarda o estado anterior e o novo de cada linha, o ator
-  (`auth.uid()` ou `app.actor_id` definido por função de servidor) e a role do
-  banco. Não há caminho da aplicação para alterar ou apagar auditoria.
+```
+client_identities (identidade única: nome, telefone, e-mail, nascimento)
+   └──< client_units (vínculo por unidade: observações de atendimento, origem, arquivamento)
+           ├──< crm_interactions (notas e histórico de CRM, por unidade, somente inclusão)
+           ├──< appointments >── professionals, services
+           └──< sales ──< sale_items >── services | products, professionals
+                     └──< sale_payments
+products ──< stock_movements (somente inclusão; vendas geram baixa/estorno)
+product_stock (view com saldo, security_invoker)
+client_duplicate_dismissals (pares revisados como "não é duplicidade")
+unit_sequences (numeração de comandas por unidade)
+```
 
-Fora da Fase 1: horários de funcionamento, bloqueios de agenda, comandas,
-pagamentos, comissões, estoque, mensagens. Ver `PHASE_PLAN.md`.
+Decisões:
+
+- **Unidade como fronteira**: toda tabela operacional tem `unit_id`; chaves
+  estrangeiras compostas `(id, unit_id)` impedem relações entre unidades.
+- **Identidade única da cliente**: nome e contato ficam em `client_identities`,
+  compartilhados entre as unidades em que a cliente é atendida. Tudo o que é da
+  unidade (observações, CRM, agenda, comandas) fica no vínculo e nas tabelas
+  ligadas a ele. Ver regras de visibilidade em `ACCESS_CONTROL.md`.
+- **Busca de duplicidade entre unidades** só por telefone ou e-mail idênticos,
+  com retorno mascarado (`find_client_candidates`). Vincular exige informar o
+  mesmo telefone ou e-mail.
+- **Mescla** (`merge_clients`) só dentro da unidade, por decisão humana, e
+  nunca altera dados de outra unidade.
+- **Conflito de horário** do mesmo profissional impedido por restrição de
+  exclusão (`btree_gist`) para agendamentos ativos.
+- **Comandas**: total calculado pelo banco a partir dos itens; finalização exige
+  pagamentos = total, registra quem finalizou e baixa o estoque; cancelamento de
+  comanda finalizada estorna o estoque. Itens e pagamentos só mudam com a
+  comanda aberta.
+- **Auditoria** guarda antes/depois, ator e role do banco; não há caminho da
+  aplicação para alterá-la.
 
 ## Funções de banco expostas
 
 | Função | Uso |
 |---|---|
-| `has_permission(unit_id, code)` | Base de todas as políticas operacionais |
-| `is_platform_admin()` | Políticas administrativas; a interface usa para mostrar a área de administração |
-| `is_unit_member(unit_id)` | Visibilidade de unidades |
-| `is_own_professional(professional_id)` | Agenda própria do profissional |
-| `my_permissions(unit_id)` | Interface: lista de permissões efetivas na unidade |
-| `get_my_agenda(from, to)` | Agenda do profissional com nome do cliente, sem expor o cadastro completo |
+| `permission_scope`, `has_permission`, `has_unit_scope` | Base das políticas |
+| `my_access()` | Interface: acesso, MFA e permissões por unidade |
+| `admin_list_people()`, `admin_provision_person()` | Gestão de pessoas |
+| `find_client_candidates()`, `create_client()` | Cadastro com verificação de duplicidade |
+| `client_duplicate_candidates()`, `dismiss_client_duplicate()`, `merge_clients()` | Revisão de duplicidades |
+| `get_my_agenda()` | Agenda do profissional com dados mínimos da cliente |
+| `unit_people()` | Pessoas da unidade (nome/cargo) para vendedor e profissional |
+| `operational_dashboard()` | Painel operacional |
+| `report_sales()`, `report_appointments()` | Relatórios |
 
-## Estrutura de repositório (alvo)
+## Frontend
 
-```
-apps/web/                 frontend React + TS + Vite (a criar)
-supabase/
-  config.toml             gerado por `supabase init` (a criar)
-  migrations/             migrações versionadas
-  functions/              Edge Functions (a criar, ver SERVER_FUNCTIONS.md)
-  tests/                  testes de banco (RLS, regras)
-  BOOTSTRAP.md
-scripts/                  utilitários de desenvolvimento
-docs/                     especificação
-prompts/                  pedidos prontos para o Claude Code
-```
+- `apps/web/src/auth/AuthProvider.tsx`: sessão, `my_access`, unidade ativa, MFA.
+- `apps/web/src/layout/`: menu filtrado pelas permissões da unidade ativa.
+- `apps/web/src/pages/admin/`: pessoas e acessos, perfis, auditoria.
+- `apps/web/src/pages/ops/`: painel, agenda, minha agenda, clientes,
+  duplicidades, serviços, profissionais, comandas, estoque, relatórios.
+- Rotas carregadas sob demanda; pacotes de terceiros separados.
+- Tipos gerados do banco em `src/lib/database.types.ts`.
 
 ## Variáveis de ambiente
 
@@ -90,23 +110,19 @@ prompts/                  pedidos prontos para o Claude Code
 |---|---|---|
 | `VITE_SUPABASE_URL` | frontend | URL do projeto |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | frontend | `sb_publishable_...` |
-| chave secreta | segredos das Edge Functions | `sb_secret_...` — nunca no frontend |
-| `ALLOWED_ORIGINS` | segredos das Edge Functions | origens autorizadas para CORS |
-| `SITE_URL` | segredos das Edge Functions | base para links de convite |
-
-Arquivos `.env*` reais ficam fora do Git (ver `.gitignore`). `.env.example`
-contém apenas nomes e valores fictícios.
+| `ALLOWED_ORIGINS`, `SITE_URL` | segredos das Edge Functions | CORS e base dos links de convite |
+| `SUPABASE_SECRET_KEYS` | injetada pelo Supabase nas Edge Functions | nunca no frontend |
 
 ## Decisões registradas
 
 | # | Decisão | Motivo |
 |---|---|---|
-| D1 | Supabase como banco, Auth e funções | RLS no PostgreSQL concentra a segurança; menos infraestrutura própria |
-| D2 | React + TypeScript + Vite | Ecossistema amplo, tipagem gerada do banco |
-| D3 | Hospedagem do frontend decidida após MVP local | Evitar compromisso antes de conhecer requisitos reais |
-| D4 | Permissões por unidade com papéis-base + exceções | Atende variações individuais sem multiplicar papéis |
-| D5 | Admin Geral não tem acesso operacional implícito | Acesso por unidade sempre explícito e auditável |
-| D6 | Clientes por unidade, sem cadastro unificado | Separação Geral × VIP; unificação exige decisão de privacidade |
-| D7 | Sem DELETE para a aplicação | Preserva histórico e auditoria |
-| D8 | Importação Trinks por CSV real, com mapeamento conferido | Nenhuma API do Trinks é presumida |
-| D9 | Escopo do banco limitado à fase corrente | O pacote original misturava quatro fases |
+| D1 | Supabase como banco, Auth e funções | RLS concentra a segurança |
+| D2 | React + TypeScript + Vite | Tipagem gerada do banco |
+| D3 | Hospedagem decidida após MVP local; sem deploy agora | Instrução do responsável |
+| D4 | Perfis de acesso editáveis com escopo e exceções | Cargos mudam; regras ficam em dados, não em código |
+| D5 | MFA exigido no banco (aal2) | A interface não é controle de segurança |
+| D6 | Identidade única + vínculo por unidade | Requisito: uma cliente, dados de cada unidade separados |
+| D7 | Sem mescla automática | Requisito: dúvidas vão para revisão |
+| D8 | Edge Functions sem dependências | Cadeia de suprimentos mínima; funcionou em rede restrita |
+| D9 | Uma migração por fase | Revisão e reversão por fase |

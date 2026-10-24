@@ -35,7 +35,7 @@ export function anonClient(): SupabaseClient {
   return createClient(env().API_URL, env().PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-const run = randomUUID().slice(0, 8);
+export const run = randomUUID().slice(0, 8);
 export function testEmail(name: string): string {
   return `${name}.${run}@teste.invalid`;
 }
@@ -130,7 +130,7 @@ export async function callFunction(
     headers: h,
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: (await res.json()) as { ok: boolean; error?: { code: string; message: string }; [k: string]: unknown } };
 }
 
 export async function mailpitHasMessageTo(email: string): Promise<boolean> {
@@ -138,4 +138,41 @@ export async function mailpitHasMessageTo(email: string): Promise<boolean> {
   if (!res.ok) return false;
   const data = (await res.json()) as { messages_count?: number; total?: number };
   return (data.messages_count ?? data.total ?? 0) > 0;
+}
+
+// Catálogo básico de uma unidade (serviço, profissional opcionalmente ligado a
+// um usuário e produto com saldo), criado como administrador.
+let seq = 0;
+export async function seedCatalog(unitCode: string, opts: { professionalUser?: string; stock?: number } = {}) {
+  const a = admin();
+  const unit = await unitId(unitCode);
+  const tag = `${run}-${++seq}`;
+  const names = { service: `Corte ${tag}`, professional: `Profissional ${tag}`, product: `Shampoo ${tag}` };
+  const svc = await a.from("services").insert({ unit_id: unit, name: names.service, duration_minutes: 60, price_cents: 8000 })
+    .select("id").single();
+  if (svc.error) throw svc.error;
+  const pro = await a.from("professionals").insert({
+    unit_id: unit, display_name: names.professional, user_id: opts.professionalUser ?? null, specialty: "Cabeleireira",
+  }).select("id").single();
+  if (pro.error) throw pro.error;
+  const prd = await a.from("products").insert({ unit_id: unit, name: names.product, sale_price_cents: 5000, min_quantity: 1 })
+    .select("id").single();
+  if (prd.error) throw prd.error;
+  if (opts.stock) {
+    const m = await a.from("stock_movements").insert({ unit_id: unit, product_id: prd.data.id, kind: "entrada", quantity_delta: opts.stock });
+    if (m.error) throw m.error;
+  }
+  return { unit, names, serviceId: svc.data.id as string, professionalId: pro.data.id as string, productId: prd.data.id as string };
+}
+
+// Cliente (identidade + vínculo) criada como administrador.
+export async function seedClient(unitCode: string, name: string, phone: string, serviceNotes: string | null = null) {
+  const a = admin();
+  const unit = await unitId(unitCode);
+  const ident = await a.from("client_identities").insert({ full_name: name, phone }).select("id").single();
+  if (ident.error) throw ident.error;
+  const cu = await a.from("client_units").insert({ unit_id: unit, identity_id: ident.data.id, service_notes: serviceNotes })
+    .select("id").single();
+  if (cu.error) throw cu.error;
+  return { identityId: ident.data.id as string, clientUnitId: cu.data.id as string };
 }

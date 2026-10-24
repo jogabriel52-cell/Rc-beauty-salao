@@ -68,6 +68,10 @@ Stack:
 - Funções de autorização retornam `false`, nunca `NULL` (use `coalesce`).
 - `INSERT ... ON CONFLICT` aplica a política de SELECT à linha nova; prefira
   verificar existência antes quando o chamador ainda não enxerga a linha.
+- Toda tabela nova que referencie `client_units` precisa ser incluída em
+  `public.merge_clients` (que move o histórico da unidade na mescla).
+- Clientes: nunca expor dados de outra unidade; busca entre unidades só por
+  telefone/e-mail idênticos e com retorno mascarado (`find_client_candidates`).
 - `created_by`, `created_at` e `updated_at` são preenchidos pelo gatilho
   `tg_stamp`; o cliente não envia esses campos (os GRANTs por coluna impedem).
 - Toda tabela operacional nova recebe: RLS, políticas, GRANT por coluna,

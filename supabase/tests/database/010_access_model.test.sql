@@ -163,8 +163,8 @@ select tests.login('dir1', 'aal2');
 select lives_ok(format(
   $$insert into public.access_profile_permissions (profile_id, permission_code, scope) values (%L, 'audit.view', 'unit')$$,
   tests.profile('recepcao')), 'Direção edita o modelo Recepção');
-select is(tests.count($$select 1 from public.audit_log where table_name = 'access_profile_permissions' and unit_id is null$$),
-  1::bigint, 'alteração de modelo auditada');
+select is(tests.count(format($$select 1 from public.audit_log where table_name = 'access_profile_permissions'
+  and unit_id is null and actor_id = %L$$, tests.id('dir1'))), 1::bigint, 'alteração de modelo auditada com o ator');
 select throws_ok(format(
   $$delete from public.access_profile_permissions where profile_id = %L and permission_code = 'audit.view'$$,
   tests.profile('direcao')), '42501', null, 'Direção não altera o próprio modelo');

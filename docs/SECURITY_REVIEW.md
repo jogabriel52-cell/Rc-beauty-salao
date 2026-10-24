@@ -69,7 +69,23 @@ Detalhes e histórico em `docs/BUILD_AND_VALIDATION.md`.
 | P11 | Desempenho das políticas com volume realista | Recomendado | Pendente |
 | P12 | Proteção de branch e varredura de segredos no repositório | Recomendado | Pendente — configuração do GitHub |
 
-Pendências das fases 1–4 são acrescentadas nas seções de cada fase.
+### Fase 1
+
+Controles: identidade única com visibilidade restrita a quem tem `clients.view`
+em unidade vinculada; busca entre unidades só por telefone/e-mail idênticos,
+com nome e telefone mascarados; vínculo exige prova (mesmo telefone/e-mail);
+notas privadas em tabela própria (`crm.view`); profissional sem acesso a
+cadastro e CRM, com agenda por função de campos mínimos; mescla só na unidade;
+comandas e estoque com regras no banco; movimentos e CRM somente inclusão.
+
+| # | Item | Tipo | Situação |
+|---|---|---|---|
+| P13 | Confirmar com o jurídico que compartilhar nome/contato entre as duas unidades (identidade única) é compatível com o aviso de privacidade e a base legal | Bloqueante (LGPD) | Pendente — decisão externa |
+| P14 | A busca mascarada revela a existência de um cadastro com aquele telefone/e-mail em outra unidade (primeiro nome + inicial). Risco aceito pelo requisito de evitar duplicidade; revisar com a direção | Decisão | Pendente |
+| P15 | Conflito de horário do mesmo profissional entre unidades não é detectado | Recomendado | Pendente |
+| P16 | Retenção e anonimização de clientes inativas (direito de eliminação) | Bloqueante (LGPD) | Pendente — política a definir |
+
+Pendências das fases 2–4 são acrescentadas nas seções de cada fase.
 
 ## Sobre o SQL original do Builder
 
